@@ -1,14 +1,219 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(references: [id], fields: [userId], onDelete: Cascade)
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
 }
 
 model User {
-  id       String @id @default(cuid())
-  email    String @unique
-  password String
+  id       String   @id @default(cuid())
+  name     String?
+  email    String?  @unique
+  username String?  @unique
+  role     UserRole
+
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  forms Form[]
+
+  requests Request[]
+
+  admin   Admin?
+  student Student?
+  teacher Teacher?
+
+  adminId   String?
+  studentId String?
+  teacherId String?
+  Session   Session[]
+}
+
+model Subject {
+  id          String  @id @default(cuid())
+  subjectCode String  @unique // Unique code for each subject
+  name        String // Name of the subject
+  semester    String
+  grades      Grade[] // Relationship to grades
+}
+
+model Grade {
+  id          String @id @default(cuid())
+  grade       String // Grade received by the student
+  regNo       String
+  subjectCode String
+
+  student Student @relation(fields: [regNo], references: [regNo], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectCode], references: [subjectCode], onDelete: Cascade)
+
+  @@index([regNo, subjectCode], name: "student_subject_index") // Ensures unique grades per student-subject pair
+}
+
+model Admin {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @unique
+}
+
+model College {
+  id          String  @id @default(cuid())
+  logo        String?
+  coverImage  String?
+  name        String?
+  district    String?
+  description String?
+
+  code  String? @unique @default("xxxx")
+  aishe String? @unique @default("C-xxxxx")
+
+  state   String?
+  pincode String?
+  address String?
+  phone   String?
+  email   String?
+}
+
+model Department {
+  id       String    @id @default(cuid())
+  name     String
+  code     String
+  students Student[]
+  hod      Teacher?
+
+  @@index([name], name: "department_index")
+  @@index([code], name: "department_index_code")
+}
+
+model Student {
+  id String @id @default(cuid())
+
+  regNo    String  @unique
+  rollno   Int
+  name     String
+  year     Int
+  section  String
+  semester Int
+  vertical String? @default("NONE")
+  batch    String? @default("2021-2025")
+  email    String?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @unique
+
+  tutor   Teacher? @relation("tutor", fields: [tutorId], references: [id])
+  tutorId String?
+
+  yearInCharge   Teacher? @relation("yearInCharge", fields: [yearInChargeId], references: [id])
+  yearInChargeId String?
+
+  department   Department? @relation(fields: [departmentId], references: [id])
+  departmentId String?
+  Grade        Grade[]
+}
+
+model Teacher {
+  id String @id @default(cuid())
+
+  tutorOf        Student[] @relation("tutor")
+  yearInChargeOf Student[] @relation("yearInCharge")
+
+  departmentId String?     @unique
+  hodOf        Department? @relation(fields: [departmentId], references: [id])
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @unique
+}
+
+enum FormType {
+  ON_DUTY
+  LEAVE
+}
+
+// The Form and Message models are used to store chat messages
+model Form {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  category String
+  reason   String
+  dates    DateTime[]
+
+  requester   User   @relation(fields: [requesterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  requesterId String
+
+  formType FormType  @default(ON_DUTY)
+  requests Request[]
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Request {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  status             RequestStatus
+  requested          User          @relation(fields: [requestedId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reasonForRejection String?
+
+  form        Form   @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  formId      String
+  requestedId String
+}
+
+// The PasswordResetToken and VerificationToken models are used by the NextAuth.js authentication library
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model VerificationToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model Otp {
+  id         String    @id @default(cuid())
+  email      String    @unique
+  otp        String
+  expires    DateTime
+  verifiedAt DateTime?
+
+  @@unique([email, otp])
 }
