@@ -2,7 +2,7 @@ import { Router } from "express";
 import randomstring from "randomstring";
 import { getUser } from "../../utils/getUser";
 import { Argon2id } from "oslo/password";
-import prisma from "../../../db/config";
+import prisma from "../../db/config";
 import { sendEmail } from "../../utils/sendEmail";
 import { randomBytes } from "crypto";
 import { lucia } from "../../utils/lucia";

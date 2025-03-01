@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { lucia } from "../utils/lucia";
 import { User } from "@prisma/client/default";
-import prisma from "../../db/config";
+import prisma from "../db/config";
 
 
 export const authMiddleware = async (
