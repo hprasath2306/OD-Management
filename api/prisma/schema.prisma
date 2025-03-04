@@ -151,6 +151,7 @@ model dropdown {
    value
    key
    entityType - eg: 0 -OD, 1-Leave
+   entityCustomFieldId?
 }
 
 // only denotes approval for which entity and it's status
@@ -191,6 +192,25 @@ model HistoryAndComments {
   type
 }
 
+model EntityCustomField {
+  id *PK
+  name
+  dataType
+  type -> dropdown, check, text, text area, select
+  entityType - 0,1 -> OD,Leave
+  groupId?
+  collegeId?
+  departmentId?
+  relationType -> only for group, only for dept, for everyone(college)
+}
+
+model CustomField {
+  cfId
+  entityType - 0,1 -> OD,Leave
+  entityId -> will reference to OD if 0, else if leave if 1, and so on  
+  value -> type any(probably string or blob)
+}
+
 model Group {
   groupId *PK
   name
@@ -205,24 +225,32 @@ model ApprovalSettings {
   type -> 0,1,2,3 -> auto submit, any, to group head(tutor), only default
   approvalHierarchyNo -> 0,1,3 -> primary, secondary, so on
 }
+
+
+model CustomFlow {
+  id
+  entityType - 0,1 -> OD,Leave
+  entityId -> will reference to OD if 0, else if leave if 1, and so on
+  groupId
+  name
+  isEnabled
+  criteriaID
+}
+
 // For now skip this impl for groupId, if -1 all group uses this, no explicit info need to be shown
-model ApprovalPolicy {
+model ApprovalFlow {
   approvalPolicyId -> -1 defaultPolicy
-  orgId -> CollegeID, our college is the org
-  groupId? -> can apply approval Policies
   approvalToType -> only group head, any staff, head of any group, head of specified group, head of specified group hierarchy
   approvalType -> manual, auto submit, auto reject
-  
+  customFLowId *FK (1 to many)
+  order
+//  below will be filled based on approvalToType
+  designationID? 
+  groupId?
+  departmentId?
+  cfId? 
 }
 //where entity means model/table
-
-// only when there is custom appflow
-model policyApprovalCriteria {
-  policyCriteriaID *PK
-  criteriaId
-  name
-  
-}
 
 model criteria {
  criteriaId *PK
@@ -236,7 +264,7 @@ RELATIONALCRITERIAID *PK
  colName
  value
  isCaseSensitive
- number -> criteria order number
+ order -> criteria order number
  criteriaId *FK
 }
 
@@ -249,11 +277,16 @@ model GroupApprovers {
   isDefault
 }
 
+model Designation {
+ id
+ name
+}
+
 model Teacher {
   id String @id @default(cuid())
 
   departmentId String?     @unique
-
+  designationId ->
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId String @unique
 }
