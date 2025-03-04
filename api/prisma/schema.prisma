@@ -125,9 +125,6 @@ model Student {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId String @unique
 
-  yearInCharge   Teacher? @relation("yearInCharge", fields: [yearInChargeId], references: [id])
-  yearInChargeId String?
-
   department   Department? @relation(fields: [departmentId], references: [id])
   departmentId String?
   Grade        Grade[]
@@ -139,8 +136,6 @@ model OD {
   reason
   description
   type
-  approvedById
-  prevApproverId
 }
 
 model Leave {
@@ -148,8 +143,6 @@ model Leave {
   reason
   description
   type
-  approvedById
-  prevApproverId
 }
 
 // list of reasons
@@ -160,29 +153,97 @@ model dropdown {
    entityType - eg: 0 -OD, 1-Leave
 }
 
-model Approval {
-   id
+// only denotes approval for which entity and it's status
+model ApprovalEntity {
+  id
+  type -> 0,1,2 -> Hierarhial, custom approval
+  status - 0,1,2,3,4,5,6 -> draft,submitted(awaiting approval),approved,rejected,recalled,forwarded?
+  entityType - 0,1 -> OD,Leave
+  entityId -> will refernce to OD if 0, else if leave if 1, so on
+}
+
+model ApprovalDetails {
+  id
   type
   status - 0,1,2,3,4,5,6 -> draft,submitted(awaiting approval),approved,rejected,recalled,forwarded?
   entityType - 0,1 -> OD,Leave
   entityId -> will refernce to OD if 0, else if leave if 1, so on
-  approvedById
+  approverId -> user
+  approvalId -> ApprovalEntity
+}
+
+model SharedEntity {
+  entityType - 0,1 -> OD,Leave
+  entityId -> will refernce to OD if 0, else if leave if 1, and so on
+  accessType -> 111, 0 - 7, view,update,delete, -1 or 0 all access
+  userId
+}
+
+model HistoryAndComments {
+  commentId *PK
+  entityType - 0,1 -> OD,Leave
+  entityId -> will reference to OD if 0, else if leave if 1, and so on
+  description
+  previousstatus
+  approvalstatus
+  
+  prevCommentId -> commentId *FK // only for nested commenting
+  type
 }
 
 model Group {
-  id
+  groupId *PK
   name
+  type -> 0,1,2, -> class subgroup -> year subgroup -> dept subgroup
+  topLevelEntity -> 0,1 -> College, Coporation // create server level constant and have a relevant names for type
+  partOfGroupId -> GroupId // I think it will be needed for us to regroup the groups under a yearIncharge, this removes need of approval type
 }
 
 model ApprovalSettings {
   id
   groupId?
-  type -> 0,1,2,3 -> auto submit, any, only group, only default
+  type -> 0,1,2,3 -> auto submit, any, to group head(tutor), only default
+  approvalHierarchyNo -> 0,1,3 -> primary, secondary, so on
+}
+// For now skip this impl for groupId, if -1 all group uses this, no explicit info need to be shown
+model ApprovalPolicy {
+  approvalPolicyId -> -1 defaultPolicy
+  orgId -> CollegeID, our college is the org
+  groupId? -> can apply approval Policies
+  approvalToType -> only group head, any staff, head of any group, head of specified group, head of specified group hierarchy
+  approvalType -> manual, auto submit, auto reject
+  
+}
+//where entity means model/table
+
+// only when there is custom appflow
+model policyApprovalCriteria {
+  policyCriteriaID *PK
+  criteriaId
+  name
+  
+}
+
+model criteria {
+ criteriaId *PK
+ logicalRepresentation String, eg: ((1&2)|3)
+}
+
+model relationalCriteria {
+RELATIONALCRITERIAID *PK
+ comparator - 0,1,2 -> equal, is, contains
+ tableName
+ colName
+ value
+ isCaseSensitive
+ number -> criteria order number
+ criteriaId *FK
 }
 
 model GroupApprovers {
   id
   approverId -> user/tutor
+  groupId
   type -> 0,1,3 -> primary, secondary, so on
   subType -> 0,1,2 -> tutor, year , HOD
   isDefault
@@ -191,11 +252,7 @@ model GroupApprovers {
 model Teacher {
   id String @id @default(cuid())
 
-  tutorOf        Student[] @relation("tutor")
-  yearInChargeOf Student[] @relation("yearInCharge")
-
   departmentId String?     @unique
-  hodOf        Department? @relation(fields: [departmentId], references: [id])
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId String @unique
@@ -206,7 +263,7 @@ enum FormType {
   LEAVE
 }
 
-// The Form and Message models are used to store chat messages
+// The Form and Message models are used to store chat messages, we either use FORM(preferred for now, not scalable) or separate entites for OD and Leave
 model Form {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -215,11 +272,14 @@ model Form {
   reason   String
   dates    DateTime[]
 
-  requester   User   @relation(fields: [requesterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   requesterId String
+  createdById String
+  status -> approvalStatus ,0,1,3
+  isArchived
+  isCancelled
+  isClosed
 
   formType FormType  @default(ON_DUTY)
-  requests Request[]
 }
 
 enum RequestStatus {
