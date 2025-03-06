@@ -313,6 +313,7 @@ router.post("/signup", async (req, res) => {
         const body = req.body;
 
         const { email, password } = body;
+        console.log("SIGNUP", email);
         if (!email || !password) {
             res.status(400).json({ message: "Invalid email or password" });
             return;

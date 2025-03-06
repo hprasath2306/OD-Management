@@ -3,8 +3,16 @@ import authRoutes from "./routes/auth/index.js";
 import departmentRoutes from "./routes/department.js";
 import designationRoutes from "./routes/designation.js";
 import teacherRoutes from "./routes/teacher.js";
+import cors from "cors";
 
 const app = express();
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(urlencoded({ extended: false }));
 app.use(express.json());
 
