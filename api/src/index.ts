@@ -4,6 +4,7 @@ import departmentRoutes from "./routes/department.js";
 import designationRoutes from "./routes/designation.js";
 import teacherRoutes from "./routes/teacher.js";
 import cors from "cors";
+import groupRoutes from "./routes/group.js";
 
 const app = express();
 app.use(
@@ -23,6 +24,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/department", departmentRoutes);
 app.use("/api/designation", designationRoutes);
 app.use("/api/teacher", teacherRoutes);
+app.use("/api/group", groupRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running");
