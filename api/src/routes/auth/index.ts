@@ -8,6 +8,7 @@ import { randomBytes } from "crypto";
 import { lucia } from "../../utils/lucia";
 import { authMiddleware, currentUser } from "../../middleware/auth";
 import { createUser } from "../../utils/createUser";
+import { UserRole } from ".prisma/client";
 
 
 const router = Router();
@@ -22,11 +23,11 @@ function generateOTP() {
 
 router.post("/login", async (req, res) => {
     try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ message: "Invalid username or password" });
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: "Invalid email or password" });
         }
-        const user = await getUser(username);
+        const user = await getUser(email);
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
@@ -38,30 +39,31 @@ router.post("/login", async (req, res) => {
         if (isValidPassword) {
             if (!user.emailVerified) {
                 // send email verification mail
-                let optVerification = await prisma.otp.findFirst({
+                let optVerification = await prisma.oTP.findFirst({
                     where: {
-                        email: user.username || user.email!,
+                        email: user.email || user.email!,
                     },
                 });
 
+
                 const otp = generateOTP();
                 if (optVerification) {
-                    optVerification = await prisma.otp.upsert({
+                    optVerification = await prisma.oTP.upsert({
                         where: { id: optVerification.id },
                         update: {
-                            expires: new Date(Date.now() + 1000 * 60 * 5),
+                            expiresAt: new Date(Date.now() + 1000 * 60 * 5),
                             otp,
                         },
                         create: {
-                            expires: new Date(Date.now() + 1000 * 60 * 5),
+                            expiresAt: new Date(Date.now() + 1000 * 60 * 5),
                             otp,
-                            email: user.username || user.email!,
+                            email: user.email || user.email!,
                         },
                     });
                 }
                 // send email
                 sendEmail({
-                    to: user.username || user.email!,
+                    to: user.email || user.email!,
                     subject: "Email Verification",
                     message: `Your OTP is ${otp} to verify your email. will expire 5 mins`,
                 });
@@ -75,12 +77,12 @@ router.post("/login", async (req, res) => {
             res.appendHeader("Set-Cookie", sessionCookie.serialize());
             const sessionUser = {
                 id: user.id,
-                email: user.email || user.username,
+                email: user.email || user.email,
                 role: user.role
             }
             return res.status(201).json({ session: session, user: sessionUser });
         } else {
-            return res.status(401).json({ message: "Invalid username or password" });
+            return res.status(401).json({ message: "Invalid email or password" });
         }
     } catch (error: any) {
         console.log(error.message);
@@ -95,7 +97,7 @@ router.post("/verifyEmail", async (req, res) => {
             res.status(400).json({ message: "Invalid email or otp" });
             return;
         }
-        const optVerification = await prisma.otp.findUnique({
+        const optVerification = await prisma.oTP.findUnique({
             where: {
                 email,
                 otp,
@@ -106,20 +108,20 @@ router.post("/verifyEmail", async (req, res) => {
             return;
         }
 
-        await prisma.otp.delete({
+        await prisma.oTP.delete({
             where: {
                 email,
                 otp,
             },
         });
-        if (optVerification.expires < new Date()) {
+        if (optVerification.expiresAt < new Date()) {
             res.status(401).json({ message: "OTP expired" });
             return;
         }
         const user = await prisma.user.update({
             where: { email },
             data: {
-                emailVerified: new Date(),
+            emailVerified: true,
             },
         });
         const sessionId = randomBytes(12).toString("hex");
@@ -154,17 +156,17 @@ router.post("/forgotPassword", async (req, res) => {
         const otp = generateOTP();
         const expires = new Date(Date.now() + 1000 * 60 * 5);
 
-        const optVerification = await prisma.otp.upsert({
+        const optVerification = await prisma.oTP.upsert({
             where: { email }, // Use email as a unique identifier for simplicity
             update: {
                 otp,
-                expires,
+              expiresAt: expires,
                 verifiedAt: null,
             },
             create: {
                 email,
                 otp,
-                expires,
+                expiresAt: expires,
             },
         });
 
@@ -190,7 +192,7 @@ router.post("/verifyForgotPassword", async (req, res) => {
             res.status(400).json({ message: "Invalid email or otp" });
             return;
         }
-        let optVerification = await prisma.otp.findUnique({
+        let optVerification = await prisma.oTP.findUnique({
             where: {
                 email,
                 otp,
@@ -201,7 +203,7 @@ router.post("/verifyForgotPassword", async (req, res) => {
             return;
         }
 
-        optVerification = await prisma.otp.update({
+        optVerification = await prisma.oTP.update({
             where: {
                 email,
                 otp,
@@ -210,7 +212,7 @@ router.post("/verifyForgotPassword", async (req, res) => {
                 verifiedAt: new Date(),
             },
         });
-        if (optVerification.expires < new Date()) {
+        if (optVerification.expiresAt< new Date()) {
             res.status(401).json({ message: "OTP expired" });
             return;
         }
@@ -229,7 +231,7 @@ router.post("/resetPassword", async (req, res) => {
             res.status(400).json({ message: "Invalid email, otp or password" });
             return;
         }
-        const optVerification = await prisma.otp.findUnique({
+        const optVerification = await prisma.oTP.findUnique({
             where: {
                 email,
                 otp,
@@ -240,7 +242,7 @@ router.post("/resetPassword", async (req, res) => {
             return;
         }
 
-        await prisma.otp.delete({
+        await prisma.oTP.delete({
             where: {
                 email,
                 otp,
@@ -255,7 +257,7 @@ router.post("/resetPassword", async (req, res) => {
             where: { email },
             data: {
                 password: hashedPassword,
-                emailVerified: new Date(),
+                emailVerified: true,
             },
         });
         res.status(201).json({ user, message: "Password reset successfully" });
@@ -310,21 +312,19 @@ router.post("/signup", async (req, res) => {
     try {
         const body = req.body;
 
-        const { username, password } = body;
-        if (!username || !password) {
-            res.status(400).json({ message: "Invalid username or password" });
+        const { email, password } = body;
+        if (!email || !password) {
+            res.status(400).json({ message: "Invalid email or password" });
             return;
         }
-        if (await getUser(username)) {
-            console.log("Username already exists");
-            res.status(400).json({ message: "Username already exists" });
+        if (await getUser(email)) {
+            console.log("email already exists");
+            res.status(400).json({ message: "email already exists" });
             return;
         }
         const hashedPassword = await new Argon2id().hash(password);
 
-        const user =
-            (await getUser(username)) ||
-            (await createUser(username, hashedPassword, "STUDENT"));
+        const user =await createUser(email, hashedPassword, UserRole.ADMIN);
 
         if (!user) {
             res.status(401).json({ message: "Unauthorized" });
