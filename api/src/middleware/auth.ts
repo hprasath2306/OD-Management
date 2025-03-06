@@ -35,9 +35,19 @@ export const authMiddleware = async (
             lucia.createBlankSessionCookie().serialize()
         );
     }
+    if (user) {
+        // Fetch user from database to include role
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { id: true, email: true, role: true }, // Ensure role is selected
+        });
+        console.log("dbUser",dbUser);
+        res.locals.user = dbUser; 
+    } else {
+        res.locals.user = null;
+    }
 
     res.locals.session = session;
-    res.locals.user = user;
     res.locals.bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
     next();
 };

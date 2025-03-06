@@ -97,6 +97,7 @@ model OTP {
 model Department {
   id       String    @id @default(uuid())
   name     String    @unique
+  code    String    @unique
   teachers Teacher[]
   groups   Group[]
   labs     Lab[]
