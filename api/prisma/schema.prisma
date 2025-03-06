@@ -129,11 +129,12 @@ model Group {
 
 model Student {
   id                   String    @id @default(uuid())
-  rollNo               String    @unique
+  rollNo               String    
   regNo                String    @unique
-  attendancePercentage Float
+  attendancePercentage Float?
   userId               String    @unique
   groupId              String
+  departmentId         String
   user                 User      @relation(fields: [userId], references: [id])
   group                Group     @relation(fields: [groupId], references: [id])
   requests             Request[]
