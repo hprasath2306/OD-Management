@@ -45,6 +45,108 @@ export class TeacherService {
     });
   }
 
+  //bulk create teachers work for both create and update like upsert
+
+  async bulkCreateTeachers(data: {
+    teachers: {
+      name: string;
+      email: string;
+      phone: string;
+      password: string;
+      departmentId: string;
+    }[];
+  }): Promise<Teacher[]> {
+    const { teachers } = data;
+
+    // Create all teachers in a transaction to ensure data consistency
+    return await prisma.$transaction(async (tx) => {
+      const createdTeachers = await Promise.all(
+        teachers.map(async (teacher) => {
+          // Hash the password
+          const hashedPassword = await new Argon2id().hash(teacher.password);
+
+          // Try to find existing teacher by email
+          const existingTeacher = await tx.teacher.findFirst({
+            where: {
+              user: {
+                email: teacher.email,
+              },
+            },
+            include: {
+              user: true,
+              department: true,
+              teacherDesignations: {
+                include: {
+                  designation: true,
+                },
+              },
+            },
+          });
+
+          if (existingTeacher) {
+            // Update existing teacher and their user
+            await tx.user.update({
+              where: { id: existingTeacher.userId },
+              data: {
+                name: teacher.name,
+                phone: teacher.phone,
+                // Only update password if provided and different from existing
+                ...(teacher.password && { password: hashedPassword }),
+              },
+            });
+
+            // Update teacher
+            return await tx.teacher.update({
+              where: { id: existingTeacher.id },
+              data: {
+                departmentId: teacher.departmentId,
+              },
+              include: {
+                user: true,
+                department: true,
+                teacherDesignations: {
+                  include: {
+                    designation: true,
+                  },
+                },
+              },
+            });
+          } else {
+            // Create new user and teacher
+            const user = await tx.user.create({
+              data: {
+                name: teacher.name,
+                email: teacher.email,
+                phone: teacher.phone,
+                password: hashedPassword,
+                role: UserRole.TEACHER,
+              },
+            });
+
+            // Create teacher
+            return await tx.teacher.create({
+              data: {
+                userId: user.id,
+                departmentId: teacher.departmentId,
+              },
+              include: {
+                user: true,
+                department: true,
+                teacherDesignations: {
+                  include: {
+                    designation: true,
+                  },
+                },
+              },
+            });
+          }
+        })
+      );
+
+      return createdTeachers;
+    });
+  }
+
   // Get all teachers
   async getAllTeachers(): Promise<Teacher[]> {
     return await prisma.teacher.findMany({

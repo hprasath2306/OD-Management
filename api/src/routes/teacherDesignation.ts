@@ -6,6 +6,7 @@ import { authMiddleware } from "../middleware/auth";
 import { authorize } from "../middleware/authorize";
 import { UserRole } from "@prisma/client";
 
+
 const router = Router();
 
 // Create a new teacher designation (Admin only)
