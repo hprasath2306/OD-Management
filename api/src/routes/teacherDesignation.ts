@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { teacherDesignationController } from "../controllers/teacherDesignation";
-import { validateResource } from "../middleware/validateResource";
 import { createTeacherDesignationSchema, updateTeacherDesignationSchema } from "../types/teacherDesignation";
-import { authMiddleware } from "../middleware/authMiddleware";
+
 import { authorize } from "../middleware/authorize";
 import { UserRole } from "@prisma/client";
+import { authMiddleware } from "../middleware/auth";
+import { validateResource } from "../middleware/validate";
 
 const router = Router();
 

@@ -6,9 +6,10 @@ export class TeacherDesignationController {
   async createTeacherDesignation(req: Request, res: Response) {
     try {
       const teacherDesignation = await teacherDesignationService.createTeacherDesignation(req.body);
-      return res.status(201).json(teacherDesignation);
+      res.status(201).json(teacherDesignation);
+      return
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+     res.status(500).json({ error: error.message });
     }
   }
 
@@ -16,9 +17,9 @@ export class TeacherDesignationController {
   async getAllTeacherDesignations(req: Request, res: Response) {
     try {
       const teacherDesignations = await teacherDesignationService.getAllTeacherDesignations();
-      return res.status(200).json(teacherDesignations);
+     res.status(200).json(teacherDesignations);
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+     res.status(500).json({ error: error.message });
     }
   }
 
@@ -27,11 +28,11 @@ export class TeacherDesignationController {
     try {
       const teacherDesignation = await teacherDesignationService.getTeacherDesignationById(req.params.id);
       if (!teacherDesignation) {
-        return res.status(404).json({ error: "Teacher designation not found" });
+       res.status(404).json({ error: "Teacher designation not found" });
       }
-      return res.status(200).json(teacherDesignation);
+     res.status(200).json(teacherDesignation);
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+     res.status(500).json({ error: error.message });
     }
   }
 
@@ -39,9 +40,9 @@ export class TeacherDesignationController {
   async getTeacherDesignationsByTeacherId(req: Request, res: Response) {
     try {
       const teacherDesignations = await teacherDesignationService.getTeacherDesignationsByTeacherId(req.params.teacherId);
-      return res.status(200).json(teacherDesignations);
+     res.status(200).json(teacherDesignations);
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+     res.status(500).json({ error: error.message });
     }
   }
 
@@ -49,9 +50,9 @@ export class TeacherDesignationController {
   async getTeacherDesignationsByDesignationId(req: Request, res: Response) {
     try {
       const teacherDesignations = await teacherDesignationService.getTeacherDesignationsByDesignationId(req.params.designationId);
-      return res.status(200).json(teacherDesignations);
+     res.status(200).json(teacherDesignations);
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+     res.status(500).json({ error: error.message });
     }
   }
 
@@ -62,9 +63,9 @@ export class TeacherDesignationController {
         req.params.id,
         req.body
       );
-      return res.status(200).json(teacherDesignation);
+     res.status(200).json(teacherDesignation);
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+     res.status(500).json({ error: error.message });
     }
   }
 
@@ -72,9 +73,9 @@ export class TeacherDesignationController {
   async deleteTeacherDesignation(req: Request, res: Response) {
     try {
       const teacherDesignation = await teacherDesignationService.deleteTeacherDesignation(req.params.id);
-      return res.status(200).json(teacherDesignation);
+     res.status(200).json(teacherDesignation);
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+     res.status(500).json({ error: error.message });
     }
   }
 }
