@@ -8,6 +8,7 @@ import groupRoutes from "./routes/group.js";
 import groupApproverRoutes from "./routes/groupApprover.js";
 import studentRoutes from "./routes/student.js";
 import teacherDesignationRoutes from "./routes/teacherDesignation";
+import labRoutes from "./routes/lab";
 
 const app = express();
 app.use(
@@ -31,6 +32,7 @@ app.use("/api/group", groupRoutes);
 app.use("/api/group-approver", groupApproverRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/teacher-designations", teacherDesignationRoutes);
+app.use("/api/lab", labRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running");
