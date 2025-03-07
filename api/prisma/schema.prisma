@@ -13,7 +13,6 @@ enum Role {
   YEAR_INCHARGE
   HOD
   LAB_INCHARGE
-
 }
 
 enum ODStatus {
@@ -48,22 +47,21 @@ enum RequestType {
 
 // Tables
 model User {
-  id               String         @id @default(uuid())
-  name             String?
-  email            String         @unique
-  password         String
-  role             UserRole
-  image            String?
-  phone            String ?        @unique
-  emailVerified    Boolean        @default(false)
-  createdAt        DateTime       @default(now())
-  teachers         Teacher?
-  students         Student?
-  requests         Request[]      @relation("RequestedBy")
-  approvals        Approval[]
-  approvalSteps    ApprovalStep[]
-  Session          Session[]
-  approvedRequests Request[]      @relation("ApprovedBy")
+  id            String         @id @default(uuid())
+  name          String?
+  email         String         @unique
+  password      String
+  role          UserRole
+  image         String?
+  phone         String?        @unique
+  emailVerified Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  teachers      Teacher?
+  students      Student?
+  requests      Request[]      @relation("RequestedBy")
+
+  approvalSteps ApprovalStep[]
+  Session       Session[]
 }
 
 model Session {
@@ -98,7 +96,7 @@ model OTP {
 model Department {
   id       String    @id @default(uuid())
   name     String    @unique
-  code    String    @unique
+  code     String    @unique
   teachers Teacher[]
   groups   Group[]
   labs     Lab[]
@@ -128,16 +126,16 @@ model Group {
 }
 
 model Student {
-  id                   String    @id @default(uuid())
-  rollNo               String    
-  regNo                String    @unique
+  id                   String           @id @default(uuid())
+  rollNo               String
+  regNo                String           @unique
   attendancePercentage Float?
-  userId               String    @unique
+  userId               String           @unique
   groupId              String
   departmentId         String
-  user                 User      @relation(fields: [userId], references: [id])
-  group                Group     @relation(fields: [groupId], references: [id])
-  requests             Request[]
+  user                 User             @relation(fields: [userId], references: [id])
+  group                Group            @relation(fields: [groupId], references: [id])
+  requests      RequestStudent[]
 }
 
 model Lab {
@@ -150,6 +148,22 @@ model Lab {
   Request      Request[]
 }
 
+// Request and Approval Flow
+model FlowTemplate {
+  id       String     @id @default(uuid())
+  name     String     @unique // e.g., "NoLabFlow", "LabFlow"
+  steps    FlowStep[]
+  requests Request[]
+}
+
+model FlowStep {
+  id             String       @id @default(uuid())
+  sequence       Int
+  role           Role // Defines which role approves this step
+  flowTemplateId String
+  flowTemplate   FlowTemplate @relation(fields: [flowTemplateId], references: [id])
+}
+
 model Request {
   id            String      @id @default(uuid())
   type          RequestType
@@ -159,15 +173,28 @@ model Request {
   description   String?
   startDate     DateTime
   endDate       DateTime
-  studentId     String
+  // studentId      String
   labId         String?
   requestedById String
-  approvedById  String?
-  student       Student     @relation(fields: [studentId], references: [id])
-  lab           Lab?        @relation(fields: [labId], references: [id])
-  requestedBy   User        @relation("RequestedBy", fields: [requestedById], references: [id])
-  approvedBy    User?       @relation("ApprovedBy", fields: [approvedById], references: [id])
-  Approval      Approval?
+
+  // student        Student       @relation(fields: [studentId], references: [id])
+  lab            Lab?             @relation(fields: [labId], references: [id])
+  requestedBy    User             @relation("RequestedBy", fields: [requestedById], references: [id])
+  Approval       Approval?
+  FlowTemplate   FlowTemplate?    @relation(fields: [flowTemplateId], references: [id])
+  students       RequestStudent[]
+  flowTemplateId String?
+  // 
+}
+
+model RequestStudent {
+  id        String  @id @default(uuid())
+  requestId String
+  studentId String
+  request   Request @relation(fields: [requestId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id])
+
+  @@unique([requestId, studentId])
 }
 
 model Approval {
@@ -175,9 +202,7 @@ model Approval {
   status           ApprovalStatus @default(PENDING)
   currentStepIndex Int            @default(0)
   requestId        String         @unique
-  approvedById     String?
   request          Request        @relation(fields: [requestId], references: [id])
-  approvedBy       User?          @relation(fields: [approvedById], references: [id])
   approvalSteps    ApprovalStep[]
 }
 
@@ -215,6 +240,7 @@ model TeacherDesignation {
   designationId String
   teacher       Teacher     @relation(fields: [teacherId], references: [id])
   designation   Designation @relation(fields: [designationId], references: [id])
+
   @@unique([teacherId, designationId])
 }
 
