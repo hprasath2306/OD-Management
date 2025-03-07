@@ -11,6 +11,7 @@ import { DepartmentTeachers } from './pages/DepartmentTeachers';
 import { Designations } from './pages/Designations';
 import { Groups } from './pages/Groups';
 import { GroupApprovers } from './pages/GroupApprovers';
+import { Students } from './pages/Students';
 import { Layout } from './components/Layout';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -39,6 +40,7 @@ function App() {
                 <Route path="/departments/:departmentId/teachers" element={<DepartmentTeachers />} />
                 <Route path="/departments/:departmentId/groups" element={<Groups />} />
                 <Route path="/departments/:departmentId/groups/:groupId/approvers" element={<GroupApprovers />} />
+                <Route path="/departments/:departmentId/groups/:groupId/students" element={<Students />} />
                 <Route path="/designations" element={<Designations />} />
               </Route>
             </Route>
