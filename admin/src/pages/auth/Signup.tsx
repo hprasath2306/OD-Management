@@ -3,8 +3,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Spinner } from '../components/ui/Spinner';
+import { useAuth } from '../../context/AuthContext';
+import { Spinner } from '../../components/ui/Spinner';
 
 // Form validation schema
 const signupSchema = z

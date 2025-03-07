@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { teacherApi, Teacher, CreateTeacherDto, UpdateTeacherDto } from '../api/teacher';
 import { departmentApi } from '../api/department';
 import { Spinner } from '../components/ui/Spinner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as XLSX from 'xlsx';
 
 // Form validation schemas
 const teacherSchema = z.object({
@@ -20,9 +21,11 @@ type TeacherFormValues = z.infer<typeof teacherSchema>;
 
 export function DepartmentTeachers() {
   const { departmentId } = useParams<{ departmentId: string }>();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch department
   const { data: department, isLoading: isDepartmentLoading } = useQuery({
@@ -111,6 +114,58 @@ export function DepartmentTeachers() {
     },
   });
 
+  // Add bulk upload mutation
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      try {
+        // Read the Excel file
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        // Validate and transform the data
+        const teachers = jsonData.map((row: any) => ({
+          name: row.name,
+          email: row.email,
+          phone: row.phone?.toString() || '',
+          password: row.password?.toString() || '',
+          departmentId: departmentId!
+        }));
+
+        // Send the transformed data to the API
+        await teacherApi.bulkUploadTeachers({ teachers });
+      } catch (error) {
+        console.error('Error processing Excel file:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers', departmentId] });
+      toast.success('Teachers uploaded successfully');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to upload teachers');
+      console.error('Bulk upload error:', error.response?.data);
+    },
+  });
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if it's an Excel file
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error('Please upload an Excel file (.xlsx or .xls)');
+      return;
+    }
+
+    bulkUploadMutation.mutate(file);
+  };
+
   const onSubmit = async (data: TeacherFormValues) => {
     try {
       if (editingTeacher) {
@@ -187,12 +242,45 @@ export function DepartmentTeachers() {
                   A list of all teachers in the {department?.name} department.
                 </p>
               </div>
-              <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+              <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-4">
+                {/* Add bulk upload button */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+                >
+                  {bulkUploadMutation.isPending ? (
+                    <Spinner size="sm" className="mr-2" />
+                  ) : (
+                    <svg
+                      className="h-4 w-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
+                    </svg>
+                  )}
+                  Bulk Upload
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     setEditingTeacher(null);
-                    reset({ name: '', email: '', phone: '' });
+                    reset();
                     setIsModalOpen(true);
                   }}
                   className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
@@ -200,6 +288,39 @@ export function DepartmentTeachers() {
                   Add Teacher
                 </button>
               </div>
+            </div>
+
+            {/* Add download template button */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  // Create a workbook with sample data
+                  const headers = [
+                    'name',
+                    'email',
+                    'phone',
+                    'password'
+                  ];
+                  
+                  const sample = [
+                    'John Doe',
+                    'john@example.com',
+                    '1234567890',
+                    'password'
+                  ];
+
+                  const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws, 'Teachers');
+                  
+                  // Generate and download the Excel file
+                  XLSX.writeFile(wb, 'teacher_template.xlsx');
+                }}
+                className="text-sm text-blue-600 hover:text-blue-900"
+              >
+                Download Template
+              </button>
             </div>
 
             {/* Teachers Table */}

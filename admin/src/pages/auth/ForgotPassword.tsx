@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { authApi } from '../api/auth';
-import { Spinner } from '../components/ui/Spinner';
+import { authApi } from '../../api/auth';
+import { Spinner } from '../../components/ui/Spinner';
 
 // Form validation schemas
 const emailSchema = z.object({

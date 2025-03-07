@@ -57,7 +57,7 @@ export class TeacherService {
     }[];
   }): Promise<Teacher[]> {
     const { teachers } = data;
-
+    // console.log(teachers)
     // Create all teachers in a transaction to ensure data consistency
     return await prisma.$transaction(async (tx) => {
       const createdTeachers = await Promise.all(

@@ -2,10 +2,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
-import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
+import { Login } from './pages/auth/Login';
+import { Signup } from './pages/auth/Signup';
 import { Dashboard } from './pages/Dashboard';
-import { ForgotPassword } from './pages/ForgotPassword';
+import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { Departments } from './pages/Departments';
 import { DepartmentTeachers } from './pages/DepartmentTeachers';
 import { Designations } from './pages/Designations';
