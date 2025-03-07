@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { flowStepController } from "../controllers/flowStep";
-import { validateResource } from "../middleware/validateResource";
+import { validateResource } from "../middleware/validate";
 import { createFlowStepSchema, updateFlowStepSchema } from "../types/flowStep";
-import { authMiddleware } from "../middleware/authMiddleware";
+import { authMiddleware } from "../middleware/auth";
 import { authorize } from "../middleware/authorize";
 import { UserRole } from "@prisma/client";
 

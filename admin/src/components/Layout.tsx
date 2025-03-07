@@ -1,15 +1,41 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const navigation = [
+const adminNavigation = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Departments', href: '/departments' },
   { name: 'Designations', href: '/designations' },
+  { name: 'Flow Templates', href: '/flow-templates' },
+];
+
+const teacherNavigation = [
+  { name: 'Dashboard', href: '/dashboard' },
+];
+
+const studentNavigation = [
+  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'OD Request', href: '/od-requests' },
 ];
 
 export function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  
+  // Determine which navigation items to show based on user role
+  const getNavigation = () => {
+    switch (user?.role) {
+      case 'ADMIN':
+        return adminNavigation;
+      case 'STUDENT':
+        return studentNavigation;
+      case 'TEACHER':
+        return teacherNavigation;
+      default:
+        return [];
+    }
+  };
+
+  const navigation = getNavigation();
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -40,7 +66,14 @@ export function Layout() {
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
-                  <div className="text-sm font-medium text-gray-700">{user?.email}</div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {user?.email}
+                    {user?.role && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {user.role}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => logout()}
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

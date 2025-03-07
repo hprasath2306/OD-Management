@@ -6,9 +6,11 @@ export class FlowStepController {
   async createFlowStep(req: Request, res: Response) {
     try {
       const flowStep = await flowStepService.createFlowStep(req.body);
-      return res.status(201).json(flowStep);
+      res.status(201).json(flowStep);
+      return;
     } catch (error: any) {
-      return res.status(400).json({ error: error.message });
+      res.status(400).json({ error: error.message });
+      return;
     }
   }
 
@@ -16,9 +18,11 @@ export class FlowStepController {
   async getAllFlowSteps(req: Request, res: Response) {
     try {
       const flowSteps = await flowStepService.getAllFlowSteps();
-      return res.status(200).json(flowSteps);
+      res.status(200).json(flowSteps);
+      return;
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
+      return;
     }
   }
 
@@ -27,11 +31,14 @@ export class FlowStepController {
     try {
       const flowStep = await flowStepService.getFlowStepById(req.params.id);
       if (!flowStep) {
-        return res.status(404).json({ error: "Flow step not found" });
+        res.status(404).json({ error: "Flow step not found" });
+        return;
       }
-      return res.status(200).json(flowStep);
+      res.status(200).json(flowStep);
+      return;
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
+      return;
     }
   }
 
@@ -39,9 +46,11 @@ export class FlowStepController {
   async getFlowStepsByTemplate(req: Request, res: Response) {
     try {
       const flowSteps = await flowStepService.getFlowStepsByTemplate(req.params.flowTemplateId);
-      return res.status(200).json(flowSteps);
+      res.status(200).json(flowSteps);
+      return;
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
+      return;
     }
   }
 
@@ -52,9 +61,11 @@ export class FlowStepController {
         req.params.id,
         req.body
       );
-      return res.status(200).json(flowStep);
+      res.status(200).json(flowStep);
+      return;
     } catch (error: any) {
-      return res.status(400).json({ error: error.message });
+      res.status(400).json({ error: error.message });
+      return;
     }
   }
 
@@ -62,9 +73,11 @@ export class FlowStepController {
   async deleteFlowStep(req: Request, res: Response) {
     try {
       const flowStep = await flowStepService.deleteFlowStep(req.params.id);
-      return res.status(200).json(flowStep);
+      res.status(200).json(flowStep);
+      return;
     } catch (error: any) {
-      return res.status(400).json({ error: error.message });
+      res.status(400).json({ error: error.message });
+      return;
     }
   }
 }
