@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { teacherDesignationController } from "../controllers/teacherDesignation";
+import { validateResource } from "../middleware/validate";
 import { createTeacherDesignationSchema, updateTeacherDesignationSchema } from "../types/teacherDesignation";
-
+import { authMiddleware } from "../middleware/auth";
 import { authorize } from "../middleware/authorize";
 import { UserRole } from "@prisma/client";
-import { authMiddleware } from "../middleware/auth";
-import { validateResource } from "../middleware/validate";
+
 
 const router = Router();
 
@@ -18,7 +18,7 @@ router.post(
   teacherDesignationController.createTeacherDesignation
 );
 
-// Get all teacher designations (Authenticated users)
+// Get all teacher designations (Authenticated users) 
 router.get(
   "/",
   authMiddleware,
