@@ -7,6 +7,7 @@ import cors from "cors";
 import groupRoutes from "./routes/group.js";
 import groupApproverRoutes from "./routes/groupApprover.js";
 import studentRoutes from "./routes/student.js";
+import teacherDesignationRoutes from "./routes/teacherDesignation";
 
 const app = express();
 app.use(
@@ -29,6 +30,7 @@ app.use("/api/teacher", teacherRoutes);
 app.use("/api/group", groupRoutes);
 app.use("/api/group-approver", groupApproverRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/teacher-designations", teacherDesignationRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running");
