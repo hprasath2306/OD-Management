@@ -16,6 +16,14 @@ router.post(
   studentController.createStudent
 );
 
+// Bulk create students - Only admin can create students
+router.post(
+  '/bulk',
+  authMiddleware,
+  authorize(['ADMIN']),
+  studentController.bulkCreateStudents
+);
+
 // Get all students - Accessible to authenticated users
 router.get(
   '/',

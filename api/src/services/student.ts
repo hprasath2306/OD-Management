@@ -28,7 +28,6 @@ export class StudentService {
           name,
           email,
           phone,
-          ...(attendancePercentage !== undefined && { attendancePercentage }),
           password: hashedPassword,
           role: UserRole.STUDENT,
         },
@@ -55,6 +54,103 @@ export class StudentService {
       });
 
       return student;
+    });
+  }
+
+  // bulk create students work for both create and update like upsert
+  async bulkCreateStudents(data: {
+    students: {
+      name: string;
+      email: string;
+      phone: string;
+      rollNo: string;
+      regNo: string;
+      attendancePercentage?: number;
+      departmentId: string;
+      groupId: string;
+    }[];
+  }): Promise<Student[]> {
+    const { students } = data;
+
+    // Create all students in a transaction to ensure data consistency
+    return await prisma.$transaction(async (tx) => {
+      const createdStudents = await Promise.all(
+        students.map(async (student) => {
+          // Hash the password (using regNo as default password)
+          const hashedPassword = await new Argon2id().hash(student.regNo);
+
+          // Try to find existing student by registration number
+          const existingStudent = await tx.student.findUnique({
+            where: { regNo: student.regNo },
+            include: { user: true },
+          });
+
+          if (existingStudent) {
+            // Update existing student and their user
+            const updatedUser = await tx.user.update({
+              where: { id: existingStudent.user.id },
+              data: {
+                name: student.name,
+                email: student.email,
+                phone: student.phone,
+              },
+            });
+
+            return await tx.student.update({
+              where: { id: existingStudent.id },
+              data: {
+                rollNo: student.rollNo,
+                groupId: student.groupId,
+                ...(student.attendancePercentage !== undefined && {
+                  attendancePercentage: student.attendancePercentage,
+                }),
+              },
+              include: {
+                user: true,
+                group: {
+                  include: {
+                    department: true,
+                  },
+                },
+              },
+            });
+          } else {
+            // Create new user and student
+            const user = await tx.user.create({
+              data: {
+                name: student.name,
+                email: student.email,
+                phone: student.phone,
+                password: hashedPassword,
+                role: UserRole.STUDENT,
+              },
+            });
+
+            return await tx.student.create({
+              data: {
+                rollNo: student.rollNo,
+                regNo: student.regNo,
+                userId: user.id,
+                groupId: student.groupId,
+                ...(student.attendancePercentage !== undefined && {
+                  attendancePercentage: student.attendancePercentage,
+                }),
+                departmentId: student.departmentId,
+              },
+              include: {
+                user: true,
+                group: {
+                  include: {
+                    department: true,
+                  },
+                },
+              },
+            });
+          }
+        })
+      );
+
+      return createdStudents;
     });
   }
 

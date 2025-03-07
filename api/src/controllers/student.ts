@@ -42,6 +42,25 @@ export class StudentController {
     }
   }
 
+  //bulk create student
+  async bulkCreateStudents(req: Request, res: Response) {
+    try {
+      const { students } = req.body;
+      const createdStudents = await studentService.bulkCreateStudents({ students });
+      res.status(201).json({
+        success: true,
+        data: createdStudents,
+        message: "Students created successfully",
+      });
+    } catch (error: any) {
+      console.error("Error creating students:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Error creating students",
+      });
+    }
+  }
+
   // Get all students
   async getAllStudents(req: Request, res: Response) {
     try {
