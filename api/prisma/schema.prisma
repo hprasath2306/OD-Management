@@ -215,6 +215,7 @@ model TeacherDesignation {
   designationId String
   teacher       Teacher     @relation(fields: [teacherId], references: [id])
   designation   Designation @relation(fields: [designationId], references: [id])
+  @@unique([teacherId, designationId])
 }
 
 model GroupApprover {

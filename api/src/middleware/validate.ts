@@ -8,7 +8,7 @@ export const validateResource = (schema: AnyZodObject) => {
       // // Validate request against schema
       // console.log("req.body:", req.body);
       // console.log("Type of teacherId:", typeof req.body.teacherId);
-      // console.log("Type of designationId:", typeof req.body.designationId);
+      // console.log("Type of designationId:", typeof req.body.designationId); 
       await schema.parseAsync({
         body: req.body,
         query: req.query,
