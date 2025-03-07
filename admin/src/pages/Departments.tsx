@@ -185,13 +185,13 @@ export function Departments() {
                             scope="col"
                             className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                           >
-                            Teachers
+                            Designations
                           </th>
                           <th
                             scope="col"
                             className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                           >
-                            Designations
+                            Teachers
                           </th>
                           <th
                             scope="col"
@@ -222,18 +222,18 @@ export function Departments() {
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                 <Link
-                                  to={`/departments/${department.id}/teachers`}
+                                  to={`/designations`}
                                   className="text-blue-600 hover:text-blue-900"
                                 >
-                                  View Teachers
+                                  View
                                 </Link>
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                 <Link
-                                  to={`/designations`}
+                                  to={`/departments/${department.id}/teachers`}
                                   className="text-blue-600 hover:text-blue-900"
                                 >
-                                  View Designations
+                                  View
                                 </Link>
                               </td>
                               <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
