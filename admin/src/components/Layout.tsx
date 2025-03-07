@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Departments', href: '/departments' },
+  { name: 'Designations', href: '/designations' },
 ];
 
 export function Layout() {

@@ -117,10 +117,6 @@ export const teacherApi = {
         updateData.name = data.name;
         updateData.email = data.email;
         updateData.phone = data.phone;
-        
-        // if (data.name) updateData.user.update.name = data.name;
-        // if (data.email) updateData.user.update.email = data.email;
-        // if (data.phone) updateData.user.update.phone = data.phone;
       }
       
       console.log('Sending update data:', updateData);
