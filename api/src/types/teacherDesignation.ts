@@ -1,14 +1,21 @@
 import { z } from "zod";
 
 export const createTeacherDesignationSchema = z.object({
-  teacherId: z.string().uuid("Teacher ID must be a valid UUID"),
-  designationId: z.string().uuid("Designation ID must be a valid UUID"),
+  body: z.object({
+    teacherId: z.string().uuid(),
+    designationId: z.string().uuid(),
+  }),
 });
 
 export const updateTeacherDesignationSchema = z.object({
-  teacherId: z.string().uuid("Teacher ID must be a valid UUID").optional(),
-  designationId: z.string().uuid("Designation ID must be a valid UUID").optional(),
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+  body: z.object({
+    teacherId: z.string().uuid(),
+    designationId: z.string().uuid(),
+  }),
 });
 
-export type CreateTeacherDesignationInput = z.infer<typeof createTeacherDesignationSchema>;
-export type UpdateTeacherDesignationInput = z.infer<typeof updateTeacherDesignationSchema>; 
+export type CreateTeacherDesignationInput = z.infer<typeof createTeacherDesignationSchema>['body'];
+export type UpdateTeacherDesignationInput = z.infer<typeof updateTeacherDesignationSchema>['body']; 

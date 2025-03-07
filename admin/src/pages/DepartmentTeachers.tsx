@@ -230,6 +230,12 @@ export function DepartmentTeachers() {
                           </th>
                           <th
                             scope="col"
+                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                          >
+                            Designations
+                          </th>
+                          <th
+                            scope="col"
                             className="relative py-3.5 pl-3 pr-4 sm:pr-6"
                           >
                             <span className="sr-only">Actions</span>
@@ -240,7 +246,7 @@ export function DepartmentTeachers() {
                         {teachers.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={4}
+                              colSpan={5}
                               className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 text-center"
                             >
                               No teachers found in this department
@@ -257,6 +263,14 @@ export function DepartmentTeachers() {
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                 {teacher.user.phone || '-'}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <Link
+                                  to={`/departments/${departmentId}/teachers/${teacher.id}/designations`}
+                                  className="text-blue-600 hover:text-blue-900"
+                                >
+                                  View
+                                </Link>
                               </td>
                               <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                 <button
