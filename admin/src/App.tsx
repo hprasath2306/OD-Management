@@ -7,6 +7,7 @@ import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Departments } from './pages/Departments';
+import { DepartmentTeachers } from './pages/DepartmentTeachers';
 import { Layout } from './components/Layout';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -32,6 +33,7 @@ function App() {
               <Route element={<Layout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/departments" element={<Departments />} />
+                <Route path="/departments/:departmentId/teachers" element={<DepartmentTeachers />} />
               </Route>
             </Route>
 

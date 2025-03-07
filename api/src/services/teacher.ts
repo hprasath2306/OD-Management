@@ -88,24 +88,61 @@ export class TeacherService {
     id: string,
     data: { name?: string; email?: string; phone?: string; departmentId?: string }
   ): Promise<Teacher> {
-    return await prisma.teacher.update({
-      where: { id },
-      data,
-      include: {
-        user: true,
-        department: true,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const teacherUpdate = await tx.teacher.update({
+        where: { id },
+        data: {
+          ...(data.departmentId !== undefined && { departmentId: data.departmentId }), // Only update if provided
+        },
+        include: {
+          user: true,
+          department: true,
+        },
+      });
+
+      if (data.name !== undefined || data.email !== undefined || data.phone !== undefined) {
+        await tx.user.update({
+          where: { id: teacherUpdate.userId },
+          data: {
+            ...(data.name !== undefined && { name: data.name }),
+            ...(data.email !== undefined && { email: data.email }),
+            ...(data.phone !== undefined && { phone: data.phone }),
+          },
+        });
+      }
+
+      return teacherUpdate;
     });
   }
+  
 
-  // Delete teacher
+  // Delete teacher and associated user
   async deleteTeacher(id: string): Promise<Teacher> {
-    return await prisma.teacher.delete({
-      where: { id },
-      include: {
-        user: true,
-        department: true,
-      },
+    return await prisma.$transaction(async (tx) => {
+      // Find the teacher to get the userId
+      const teacher = await tx.teacher.findUnique({
+        where: { id },
+        include: {
+          user: true,
+          department: true,
+        },
+      });
+
+      if (!teacher) {
+        throw new Error('Teacher not found');
+      }
+
+      // Delete the teacher
+      await tx.teacher.delete({
+        where: { id },
+      });
+
+      // Delete the associated user
+      await tx.user.delete({
+        where: { id: teacher.userId },
+      });
+
+      return teacher;
     });
   }
 

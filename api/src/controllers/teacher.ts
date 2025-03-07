@@ -93,7 +93,7 @@ export class TeacherController {
     try {
       const { id } = req.params;
       const { name, email, phone, departmentId, designationIds } = req.body;
-
+      console.log("fgfed"+name, email, phone, departmentId);
       // Check if email is being updated and if it already exists
       if (email) {
         const existingTeacher = await teacherService.getTeacherByEmail(email);

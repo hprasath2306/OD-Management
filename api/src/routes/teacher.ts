@@ -30,4 +30,20 @@ router.get(
   teacherController.getTeacherById
 );
 
+// Update teacher by ID - Only admin can update teachers
+router.put(
+  '/:id',
+  authMiddleware,
+  authorize(['ADMIN']),
+  teacherController.updateTeacher
+);
+
+// Delete teacher by ID - Only admin can delete teachers
+router.delete(
+  '/:id',
+  authMiddleware,
+  authorize(['ADMIN']),
+  teacherController.deleteTeacher
+);
+
 export default router; 
