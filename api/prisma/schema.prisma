@@ -47,18 +47,18 @@ enum RequestType {
 
 // Tables
 model User {
-  id            String         @id @default(uuid())
+  id            String    @id @default(uuid())
   name          String?
-  email         String         @unique
+  email         String    @unique
   password      String
   role          UserRole
   image         String?
-  phone         String?        @unique
-  emailVerified Boolean        @default(false)
-  createdAt     DateTime       @default(now())
+  phone         String?   @unique
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
   teachers      Teacher?
   students      Student?
-  requests      Request[]      @relation("RequestedBy")
+  requests      Request[] @relation("RequestedBy")
 
   approvalSteps ApprovalStep[]
   Session       Session[]
@@ -123,6 +123,7 @@ model Group {
   students       Student[]
   approvalSteps  ApprovalStep[]
   groupApprovers GroupApprover[]
+  Approval       Approval[]
 }
 
 model Student {
@@ -135,7 +136,7 @@ model Student {
   departmentId         String
   user                 User             @relation(fields: [userId], references: [id])
   group                Group            @relation(fields: [groupId], references: [id])
-  requests      RequestStudent[]
+  requests             RequestStudent[]
 }
 
 model Lab {
@@ -180,7 +181,7 @@ model Request {
   // student        Student       @relation(fields: [studentId], references: [id])
   lab            Lab?             @relation(fields: [labId], references: [id])
   requestedBy    User             @relation("RequestedBy", fields: [requestedById], references: [id])
-  Approval       Approval?
+  Approvals      Approval[]
   FlowTemplate   FlowTemplate?    @relation(fields: [flowTemplateId], references: [id])
   students       RequestStudent[]
   flowTemplateId String?
@@ -201,7 +202,9 @@ model Approval {
   id               String         @id @default(uuid())
   status           ApprovalStatus @default(PENDING)
   currentStepIndex Int            @default(0)
-  requestId        String         @unique
+  requestId        String         
+  groupId          String
+  group            Group          @relation(fields: [groupId], references: [id])
   request          Request        @relation(fields: [requestId], references: [id])
   approvalSteps    ApprovalStep[]
 }

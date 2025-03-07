@@ -11,6 +11,7 @@ import teacherDesignationRoutes from "./routes/teacherDesignation";
 import labRoutes from "./routes/lab";
 import flowTemplateRoutes from "./routes/flowTemplate";
 import flowStepRoutes from "./routes/flowStep";
+import requestRoutes from "./routes/request";
 
 const app = express();
 app.use(
@@ -37,6 +38,7 @@ app.use("/api/teacher-designations", teacherDesignationRoutes);
 app.use("/api/lab", labRoutes);
 app.use("/api/flow-templates", flowTemplateRoutes);
 app.use("/api/flow-steps", flowStepRoutes);
+app.use("/api/requests", requestRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running");
