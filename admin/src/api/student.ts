@@ -7,6 +7,7 @@ export interface Student {
   rollNo: string;
   regNo: string;
   departmentId: string;
+  attendancePercentage: number;
   user: {
     id: string;
     name: string;
@@ -35,6 +36,7 @@ export interface CreateStudentDto {
   regNo: string;
   groupId: string;
   departmentId: string;
+  attendancePercentage: number;
 }
 
 export interface UpdateStudentDto {
@@ -45,12 +47,26 @@ export interface UpdateStudentDto {
   regNo?: string;
   groupId?: string;
   departmentId?: string;
+  attendancePercentage?: number;
 }
 
 interface ApiResponse<T> {
   success: boolean;
   data: T;
   message: string;
+}
+
+interface BulkUploadDto {
+  students: Array<{
+    name: string;
+    email: string;
+    phone: string;
+    rollNo: string;
+    regNo: string;
+    attendancePercentage: number;
+    departmentId: string;
+    groupId: string;
+  }>;
 }
 
 export const studentApi = {
@@ -133,6 +149,21 @@ export const studentApi = {
       console.log('Student deleted successfully');
     } catch (error) {
       console.error('Error deleting student:', error);
+      throw error;
+    }
+  },
+
+  // Bulk upload students
+  bulkUploadStudents: async (data: BulkUploadDto): Promise<void> => {
+    try {
+      const response = await api.post<ApiResponse<void>>('/student/bulk', data);
+      console.log('Bulk upload response:', response.data);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error bulk uploading students:', error);
       throw error;
     }
   },

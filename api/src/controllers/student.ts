@@ -46,6 +46,7 @@ export class StudentController {
   async bulkCreateStudents(req: Request, res: Response) {
     try {
       const { students } = req.body;
+      console.log(students)
       const createdStudents = await studentService.bulkCreateStudents({ students });
       res.status(201).json({
         success: true,

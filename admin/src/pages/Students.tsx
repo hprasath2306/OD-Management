@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { studentApi, Student, CreateStudentDto, UpdateStudentDto } from '../api/student';
@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import * as XLSX from 'xlsx';
 
 // Form validation schemas
 const studentSchema = z.object({
@@ -16,6 +17,7 @@ const studentSchema = z.object({
   phone: z.string().min(10, 'Phone number must be at least 10 characters'),
   rollNo: z.string().min(1, 'Roll number is required'),
   regNo: z.string().min(1, 'Registration number is required'),
+  attendancePercentage: z.number().min(0, 'Attendance must be at least 0%').max(100, 'Attendance cannot exceed 100%'),
 });
 
 type StudentFormValues = z.infer<typeof studentSchema>;
@@ -26,6 +28,7 @@ export function Students() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch students
   const { data: students = [], isLoading, error } = useQuery({
@@ -49,6 +52,7 @@ export function Students() {
       phone: '',
       rollNo: '',
       regNo: '',
+      attendancePercentage: 0,
     },
   });
 
@@ -104,6 +108,48 @@ export function Students() {
     },
   });
 
+  // Add bulk upload mutation
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      try {
+        // Read the Excel file
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        // Validate and transform the data
+        const students = jsonData.map((row: any) => ({
+          name: row.name,
+          email: row.email,
+          phone: row.phone?.toString() || '',
+          rollNo: row.rollNo,
+          regNo: String(row.regNo),
+          attendancePercentage: Number(row.attendancePercentage) || 0,
+          departmentId: departmentId!,
+          groupId: groupId!
+        }));
+
+        // Send the transformed data to the API
+        await studentApi.bulkUploadStudents({ students });
+      } catch (error) {
+        console.error('Error processing Excel file:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students', groupId] });
+      toast.success('Students uploaded successfully');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to upload students');
+      console.error('Bulk upload error:', error.response?.data);
+    },
+  });
+
   const onSubmit = async (data: StudentFormValues) => {
     if (editingStudent) {
       updateMutation.mutate({ id: editingStudent.id, data });
@@ -119,6 +165,7 @@ export function Students() {
     setValue('phone', student.user.phone);
     setValue('rollNo', student.rollNo);
     setValue('regNo', student.regNo);
+    setValue('attendancePercentage', student.attendancePercentage);
     setIsModalOpen(true);
   };
 
@@ -126,6 +173,19 @@ export function Students() {
     if (window.confirm('Are you sure you want to delete this student?')) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if it's an Excel file
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error('Please upload an Excel file (.xlsx or .xls)');
+      return;
+    }
+
+    bulkUploadMutation.mutate(file);
   };
 
   if (isLoading) {
@@ -191,7 +251,40 @@ export function Students() {
                   A list of all students in this group.
                 </p>
               </div>
-              <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+              <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-4">
+                {/* Add bulk upload button */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+                >
+                  {bulkUploadMutation.isPending ? (
+                    <Spinner size="sm" className="mr-2" />
+                  ) : (
+                    <svg
+                      className="h-4 w-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
+                    </svg>
+                  )}
+                  Bulk Upload
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -204,6 +297,43 @@ export function Students() {
                   Add Student
                 </button>
               </div>
+            </div>
+
+            {/* Add download template button */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  // Create a workbook with sample data
+                  const headers = [
+                    'name',
+                    'email',
+                    'phone',
+                    'rollNo',
+                    'regNo',
+                    'attendancePercentage'
+                  ];
+                  
+                  const sample = [
+                    'John Doe',
+                    'john@example.com',
+                    '1234567890',
+                    '21CS101',
+                    '2021CSE101',
+                    '85'
+                  ];
+
+                  const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws, 'Students');
+                  
+                  // Generate and download the Excel file
+                  XLSX.writeFile(wb, 'student_template.xlsx');
+                }}
+                className="text-sm text-blue-600 hover:text-blue-900"
+              >
+                Download Template
+              </button>
             </div>
 
             {/* Students Table */}
@@ -246,6 +376,12 @@ export function Students() {
                           </th>
                           <th
                             scope="col"
+                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                          >
+                            Attendance %
+                          </th>
+                          <th
+                            scope="col"
                             className="relative py-3.5 pl-3 pr-4 sm:pr-6"
                           >
                             <span className="sr-only">Actions</span>
@@ -256,7 +392,7 @@ export function Students() {
                         {students.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={6}
+                              colSpan={7}
                               className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 text-center"
                             >
                               No students found
@@ -279,6 +415,9 @@ export function Students() {
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                 {student.regNo}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                {student.attendancePercentage}%
                               </td>
                               <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                 <button
@@ -413,6 +552,30 @@ export function Students() {
                       {errors.regNo && (
                         <p className="mt-1 text-sm text-red-600">
                           {errors.regNo.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="attendancePercentage"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Attendance Percentage
+                      </label>
+                      <input
+                        type="number"
+                        {...register('attendancePercentage', { valueAsNumber: true })}
+                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                          errors.attendancePercentage ? 'border-red-300' : ''
+                        }`}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                      />
+                      {errors.attendancePercentage && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.attendancePercentage.message}
                         </p>
                       )}
                     </div>
