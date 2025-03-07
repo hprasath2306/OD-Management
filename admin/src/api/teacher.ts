@@ -38,6 +38,15 @@ interface ApiResponse<T> {
   message: string;
 }
 
+interface BulkUploadDto {
+  teachers: Array<{
+    name: string;
+    email: string;
+    phone: string;
+    departmentId: string;
+  }>;
+}
+
 export const teacherApi = {
   // Get all teachers
   getAllTeachers: async (): Promise<Teacher[]> => {
@@ -141,6 +150,21 @@ export const teacherApi = {
       console.log('Teacher deleted successfully');
     } catch (error) {
       console.error('Error deleting teacher:', error);
+      throw error;
+    }
+  },
+
+  // Bulk upload teachers
+  bulkUploadTeachers: async (data: BulkUploadDto): Promise<void> => {
+    try {
+      const response = await api.post<ApiResponse<void>>('/teacher/bulk', data);
+      console.log('Bulk upload response:', response.data);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error bulk uploading teachers:', error);
       throw error;
     }
   },

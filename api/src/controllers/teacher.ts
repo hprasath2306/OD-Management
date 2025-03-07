@@ -47,6 +47,7 @@ export class TeacherController {
   async bulkCreateTeachers(req: Request, res: Response) {
     try {
       const teachers = req.body;
+      // console.log(teachers);
       const createdTeachers = await teacherService.bulkCreateTeachers(teachers);
       res.status(201).json({
         success: true,
