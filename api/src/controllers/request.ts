@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { requestService } from "../services/request";
+import { UserRole } from "@prisma/client";
 
 export class RequestController {
   // Create a new request
@@ -18,8 +19,48 @@ export class RequestController {
     }
   }
 
+  // Process an approval step
+  async processApprovalStep(req: Request, res: Response) {
+    try {
+      // Check if user is a teacher
+      if (res.locals.role !== UserRole.TEACHER) {
+        res.status(403).json({ error: 'Only teachers can process approvals' });
+        return;
+      }
 
+      const { id } = req.params;
+      const { status, comments } = req.body;
+
+      const result = await requestService.processApprovalStep(id, res.locals.id, {
+        status,
+        comments,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error(`Error processing approval: ${error.message}`);
+      res.status(error.message.includes('No pending step') ? 400 : 500).json({
+        error: error.message || 'Failed to process approval',
+      });
+    }
+  }
+
+  // Get requests for approver
+  async getApproverRequests(req: Request, res: Response) {
+    try {
+      // Check if user is a teacher
+      if (res.locals.role !== UserRole.TEACHER) {
+        res.status(403).json({ error: 'Only teachers can view requests' });
+        return;
+      }
+
+      const requests = await requestService.getApproverRequests(res.locals.id);
+      res.json({ requests });
+    } catch (error: any) {
+      console.error(`Error fetching approver requests: ${error.message}`);
+      res.status(500).json({ error: 'Failed to fetch requests' });
+    }
+  }
 }
-
 
 export const requestController = new RequestController(); 

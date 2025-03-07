@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import { RequestType, ODCategory, ApprovalStatus } from "@prisma/client"
 
-
+// Schema for students in the request
+const requestStudentSchema = z.object({
+  studentId: z.string().uuid("Student ID must be a valid UUID"),
+})
 
 export const createRequestSchema = z.object({
   body: z.object({
@@ -17,8 +20,38 @@ export const createRequestSchema = z.object({
     startDate: z.string().transform((str) => new Date(str)),
     endDate: z.string().transform((str) => new Date(str)),
     labId: z.string().uuid("Lab ID must be a valid UUID").optional(),
-    students: z.array(z.string().uuid("Student ID must be a valid UUID")).optional(),
+    students: z.array(z.string().uuid("Student ID must be a valid UUID")).min(1, "At least one student is required"),
+  }).refine(
+    (data) => {
+      const start = new Date(data.startDate)
+      const end = new Date(data.endDate)
+      return end >= start
+    },
+    {
+      message: "End date must be after or equal to start date",
+    }
+  ).refine(
+    (data) => {
+      return !data.needsLab || (data.needsLab && data.labId)
+    },
+    {
+      message: "Lab ID is required when needsLab is true",
+    }
+  ),
+})
 
+export const processApprovalSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Request ID must be a valid UUID"),
   }),
-})    
+  body: z.object({
+    status: z.enum(["APPROVED", "REJECTED"], {
+      errorMap: () => ({ message: "Status must be either APPROVED or REJECTED" }),
+    }),
+    comments: z.string().optional(),
+  }),
+})
+
+export type CreateRequestInput = z.infer<typeof createRequestSchema>["body"]
+export type ProcessApprovalInput = z.infer<typeof processApprovalSchema>["body"]
 
