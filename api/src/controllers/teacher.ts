@@ -42,6 +42,26 @@ export class TeacherController {
     }
   }
 
+  //bulk create teacher
+
+  async bulkCreateTeachers(req: Request, res: Response) {
+    try {
+      const teachers = req.body;
+      const createdTeachers = await teacherService.bulkCreateTeachers(teachers);
+      res.status(201).json({
+        success: true,
+        data: createdTeachers,
+        message: "Teachers created successfully",
+      });
+    } catch (error: any) {
+      console.error("Error creating teachers:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Error creating teachers",
+      });
+    }
+  }
+
   // Get all teachers
   async getAllTeachers(req: Request, res: Response) {
     try {

@@ -16,6 +16,14 @@ router.post(
   teacherController.createTeacher
 );
 
+// Bulk create teachers - Only admin can create teachers
+router.post(
+  '/bulk',
+  authMiddleware,
+  authorize(['ADMIN']),
+  teacherController.bulkCreateTeachers
+);
+
 // Get all teachers - Accessible to authenticated users
 router.get(
   '/',
