@@ -24,7 +24,7 @@ export class RequestController {
   async processApprovalStep(req: Request, res: Response) {
     try {
       // Check if user is a teacher
-      if (res.locals.role !== UserRole.TEACHER) {
+      if (res.locals.user.role !== UserRole.TEACHER) {
         res.status(403).json({ error: 'Only teachers can process approvals' });
         return;
       }

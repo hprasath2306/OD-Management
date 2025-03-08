@@ -193,17 +193,17 @@ export class RequestService {
           where: { id: approval.id },
           data: { status: ApprovalStatus.REJECTED },
         });
-        // await tx.request.update({
-        //   where: { id: data.requestId },
-        //   data: { status: ApprovalStatus.REJECTED },
-        // });
+        await tx.request.update({
+          where: { id: data.requestId },
+          data: { status: ApprovalStatus.REJECTED },
+        });
         return { message: 'Group approval rejected', status: ApprovalStatus.REJECTED };
       }
   
       // Handle APPROVED: Check for next step in FlowTemplate
       const nextStepIndex = approval.currentStepIndex + 1;
       const flowSteps = approval.request.FlowTemplate!.steps; // FlowTemplate is required in schema
-      const nextFlowStep = flowSteps.find(s => s.sequence === nextStepIndex + 1);
+      const nextFlowStep = flowSteps.find(s => s.sequence === nextStepIndex );
   
       if (!nextFlowStep) {
         // No more steps in this group's flow, mark Approval as APPROVED
@@ -220,7 +220,7 @@ export class RequestService {
         const anyRejected = allApprovals.some(a => a.status === ApprovalStatus.REJECTED);
   
         if (anyRejected) {
-          await tx.approval.update({
+          await tx.request.update({
             where: { id: data.requestId },
             data: { status: ApprovalStatus.REJECTED },
           });
@@ -228,7 +228,7 @@ export class RequestService {
         }
   
         if (allApproved) {
-          await tx.approval.update({
+          await tx.request.update({
             where: { id: data.requestId },
             data: { status: ApprovalStatus.APPROVED },
           });

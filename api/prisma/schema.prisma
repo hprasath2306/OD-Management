@@ -177,7 +177,7 @@ model Request {
   // studentId      String
   labId         String?
   requestedById String
-
+  status        ApprovalStatus    @default(PENDING)
   // student        Student       @relation(fields: [studentId], references: [id])
   lab            Lab?             @relation(fields: [labId], references: [id])
   requestedBy    User             @relation("RequestedBy", fields: [requestedById], references: [id])

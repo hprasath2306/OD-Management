@@ -18,6 +18,7 @@ interface Student {
   rollNo: string;
   name: string;
   user: {
+    id: string;
     name: string;
   };
 }
@@ -37,9 +38,9 @@ interface ODRequest {
   startDate: string;
   endDate: string;
   labId?: string;
-  status: ApprovalStatus;
   createdAt: string;
   students: { id: string; name: string; rollNo: string }[];
+  approvals?: { status: ApprovalStatus }[];
 }
 
 // Form validation schema
@@ -81,14 +82,11 @@ type ODRequestFormValues = z.infer<typeof odRequestSchema>;
 
 export function ODRequests() {
   const { user } = useAuth();
-//   console.log(JSON.stringify(user.id));
   const [isLoading, setIsLoading] = useState(false);
   const [requests, setRequests] = useState<ODRequest[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [labs, setLabs] = useState<Lab[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
-  console.log(currentStudent);
 
   // Form setup
   const { register, handleSubmit, reset, watch, control, setValue, formState: { errors } } = useForm<ODRequestFormValues>({
@@ -110,30 +108,34 @@ export function ODRequests() {
   const requestType = watch('type');
   const isTeamRequest = watch('isTeamRequest');
 
-  // Watch for changes in isTeamRequest
-  useEffect(() => {
-    // When switching between individual and team request
-    if (!isTeamRequest && currentStudent) {
-      // For individual request, set only the current student
-      setValue('students', [{
-        value: currentStudent.id,
-        label: `${currentStudent.rollNo} - ${currentStudent.name || user?.email}`
-      }]);
-    } else if (isTeamRequest) {
-      // For team request, clear the selection to allow choosing multiple students
-      setValue('students', []);
+  // Load students for team requests
+  const loadStudents = async () => {
+    try {
+      const response = await api.get('student');
+      const studentData = response.data.data || [];
+
+      // Filter out the current user from the team members list
+      const filteredStudents = Array.isArray(studentData)
+        ? studentData.filter(student => student.user?.name !== user?.name)
+        : [];
+
+      setStudents(filteredStudents);
+    } catch (error) {
+      console.error('Error loading students:', error);
+      setStudents([]);
     }
-  }, [isTeamRequest, currentStudent, setValue, user?.email]);
+  };
 
   // Load user's OD requests
   const loadRequests = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/request/my-requests');
-      setRequests(response.data);
+      const response = await api.get('/requests/student');
+      setRequests(response.data.requests || []); // Access the requests array from response
     } catch (error) {
       console.error('Error loading requests:', error);
       toast.error('Failed to load your requests');
+      setRequests([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -149,51 +151,22 @@ export function ODRequests() {
     }
   };
 
-  // Load students for team requests
-  const loadStudents = async () => {
-    try {
-      const response = await api.get('student');
-      console.log(response.data);
-      const studentData = response.data.data || [];
-      // Filter out the current student from the list for team selection
-      const filteredStudents = Array.isArray(studentData) 
-        ? studentData.filter(student => student.id !== currentStudent?.id)
-        : [];
-      setStudents(filteredStudents);
-    } catch (error) {
-      console.error('Error loading students:', error);
-      setStudents([]);
-    }
-  };
-
-  // Load current student info
-  const loadCurrentStudent = async () => {
-    try {
-    //   const response = await api.get('student/me');
-    //   const studentData = response.data;
-    //   if (studentData) {
-    //     setCurrentStudent(studentData);
-    //   }
-    setCurrentStudent(user);
-    } catch (error) {
-      console.error('Error loading current student:', error);
-    }
-  };
-
   // Submit form
   const onSubmit = async (data: ODRequestFormValues) => {
     try {
       setIsLoading(true);
-      
-      // Ensure we have valid student IDs
-      const studentIds = isTeamRequest 
+      // Use user ID for individual requests, selected students for team requests
+      const studentIds = isTeamRequest
         ? (data.students?.map(student => student.value).filter(Boolean) || [])
-        : currentStudent?.id ? [currentStudent.id] : [];
-
+        : [user?.id]; // Use user ID directly from auth context
+      console.log(studentIds);
+      if (isTeamRequest) {
+        studentIds.push(user?.id);
+      }
       if (studentIds.length === 0) {
         throw new Error('No students selected');
       }
-      
+
       const submitData = {
         type: data.type,
         category: data.type === 'OD' ? data.category : undefined,
@@ -205,8 +178,7 @@ export function ODRequests() {
         labId: data.needsLab ? data.labId : undefined,
         students: studentIds
       };
-      console.log(submitData);
-      
+
       await api.post('/requests', submitData);
       toast.success('Request submitted successfully');
       setIsModalOpen(false);
@@ -220,14 +192,12 @@ export function ODRequests() {
     }
   };
 
-
   // Load data on component mount
   useEffect(() => {
     loadRequests();
     loadLabs();
     loadStudents();
-    loadCurrentStudent();
-    
+
   }, []);
 
   const handleOpenModal = () => {
@@ -242,21 +212,18 @@ export function ODRequests() {
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         isTeamRequest: false,
-        students: currentStudent ? [{
-          value: currentStudent.id,
-          label: `${currentStudent.rollNo} - ${currentStudent.name || user?.email}`
-        }] : []
+        students: []
       });
       setIsModalOpen(true);
-      
+
     } catch (error) {
       console.error('Error opening modal:', error);
       toast.error('Failed to open request form');
     }
   };
-  
+
   return (
-    
+
     <>
       <header>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -333,15 +300,18 @@ export function ODRequests() {
                                 )}
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  request.status === 'APPROVED' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : request.status === 'REJECTED'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                  {request.status}
-                                </span>
+                                {request.approvals && request.approvals.length > 0 ? (
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${request.approvals[0].status === 'APPROVED'
+                                      ? 'bg-green-100 text-green-800'
+                                      : request.approvals[0].status === 'REJECTED'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                    {request.approvals[0].status}
+                                  </span>
+                                ) : (
+                                  <span>Pending</span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -422,52 +392,43 @@ export function ODRequests() {
                         </div>
 
                         {/* Student Selection */}
-                        <div>
-                          <label htmlFor="students" className="block text-sm font-medium text-gray-700">
-                            {isTeamRequest ? 'Team Members' : 'Student'}
-                          </label>
-                          <Controller
-                            name="students"
-                            control={control}
-                            render={({ field }) => (
-                              <Select
-                                {...field}
-                                isMulti={isTeamRequest}
-                                options={isTeamRequest 
-                                  ? students.map(student => ({
-                                      value: student.id,
-                                      label: `${student?.user?.name || 'Unknown'}`
-                                    }))
-                                  : currentStudent 
-                                    ? [{
-                                        value: currentStudent.id,
-                                        label: `${currentStudent.name || user?.email}`
-                                      }]
-                                    : []
-                                }
-                                className="mt-1 block w-full"
-                                placeholder={isTeamRequest ? "Select team members..." : "Current student"}
-                                isDisabled={!isTeamRequest}
-                                value={field.value || []}
-                                onChange={(val) => {
-                                  if (isTeamRequest) {
-                                    // For team requests, allow multiple selections
-                                    field.onChange(val || []);
-                                  } else {
-                                    // For individual requests, ensure only current student is selected
-                                    field.onChange(currentStudent ? [{
-                                      value: currentStudent.id,
-                                      label: `${currentStudent.name || user?.email}`
-                                    }] : []);
-                                  }
-                                }}
-                              />
+                        {isTeamRequest ? (
+                          <div>
+                            <label htmlFor="students" className="block text-sm font-medium text-gray-700">
+                              Team Members
+                            </label>
+                            <Controller
+                              name="students"
+                              control={control}
+                              render={({ field }) => (
+                                <Select
+                                  {...field}
+                                  isMulti={true}
+                                  options={students.map(student => ({
+                                    value: student.user.id,
+                                    label: `${student?.user?.name || 'Unknown'}`
+                                  }))}
+                                  className="mt-1 block w-full"
+                                  placeholder="Select team members..."
+                                  value={field.value || []}
+                                  onChange={(val) => field.onChange(val || [])}
+                                />
+                              )}
+                            />
+                            {errors.students && (
+                              <p className="mt-1 text-sm text-red-600">{errors.students.message}</p>
                             )}
-                          />
-                          {errors.students && (
-                            <p className="mt-1 text-sm text-red-600">{errors.students.message}</p>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label htmlFor="currentStudent" className="block text-sm font-medium text-gray-700">
+                              Student
+                            </label>
+                            <div className="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 px-3 py-2 text-gray-700">
+                              {user?.email || 'Current Student'}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Needs Lab */}
                         <div className="flex items-center">

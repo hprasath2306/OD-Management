@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { user } = await authApi.login({ email, password });
       setUser(user);
       toast.success('Logged in successfully');
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to login');
       throw error;
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         setUser(userData);
         toast.success('Account created successfully');
-        navigate('/dashboard');
+        navigate('/');
       } else {
         // If we couldn't get the user data, show an error
         toast.error('Account created but failed to fetch user data');
