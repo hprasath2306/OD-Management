@@ -13,7 +13,7 @@ const router = Router();
 router.post(
   "/",
   authMiddleware,
-  authorize([UserRole.ADMIN]),
+  authorize([UserRole.STUDENT]),
   validateResource(createRequestSchema),
   requestController.createRequest
 );
@@ -33,6 +33,14 @@ router.get(
   authMiddleware,
   authorize([UserRole.TEACHER]),
   requestController.getApproverRequests
+);
+
+// Get student's requests (Students only)
+router.get(
+  "/student",
+  authMiddleware,
+  authorize([UserRole.STUDENT]),
+  requestController.getStudentRequests
 );
 
 // Get all requests (Authenticated users)

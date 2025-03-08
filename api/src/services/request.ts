@@ -58,8 +58,8 @@ export class RequestService {
           needsLab: data.needsLab,
           reason: data.reason,
           description: data.description,
-          startDate: data.startDate,
-          endDate: data.endDate,
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
           labId: data.labId,
           requestedById: data.requestedById,
           flowTemplateId: flowTemplate.id,
@@ -93,7 +93,7 @@ export class RequestService {
         });
   
         // Get the first step from the flow template
-        const firstStep = flowTemplate.steps.find(step => step.sequence === 1);
+        const firstStep = flowTemplate.steps.find(step => step.sequence === 0);
         if (!firstStep) throw new Error("No first step found in flow template");
   
         // Create only the first ApprovalStep
@@ -290,9 +290,9 @@ export class RequestService {
         endDate: request.endDate,
         lab: request.lab
           ? {
-              id: request.lab.id,
-              name: request.lab.name,
-            }
+            id: request.lab.id,
+            name: request.lab.name,
+          }
           : null,
         submittedBy: {
           id: request.requestedBy.id,
@@ -312,6 +312,103 @@ export class RequestService {
       };
     });
   }
+
+  // Get requests for a student
+  // Get requests for a student
+  async getStudentRequests(userId: string): Promise<any[]> {
+    // First verify the user is a student
+    console.log("userId",userId);
+    const student = await prisma.student.findUnique({
+      where: { userId },
+      include: { user: true },
+    });
+
+    if (!student) {
+      throw new Error('User is not a student');
+    }
+  console.log("student",student);
+    // Fetch all requests associated with the student
+    const requests = await prisma.request.findMany({
+      where: {
+        students: {
+          some: {
+            studentId: student.id, // Match requests where this student is involved
+          },
+        },
+      },
+      include: {
+        students: {
+          include: {
+            student: {
+              include: { user: true, group: true }, // Include student details
+            },
+          },
+        },
+        lab: true, // Include lab details if applicable
+        requestedBy: true, // Include the user who requested it
+        FlowTemplate: {
+          include: { steps: true }, // Include the approval flow template
+        },
+        Approvals: {
+          include: {
+            approvalSteps: true, // Include approval steps for status tracking
+            group: true, // Include group details
+          },
+        },
+      },
+    });
+
+    // Format the response (optional, adjust based on your needs)
+    const formattedRequests = requests.map(request => ({
+      id: request.id,
+      type: request.type,
+      category: request.category,
+      needsLab: request.needsLab,
+      reason: request.reason,
+      description: request.description,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      lab: request.lab ? { id: request.lab.id, name: request.lab.name } : null,
+      requestedBy: {
+        id: request.requestedBy.id,
+        name: request.requestedBy.name,
+        email: request.requestedBy.email,
+      },
+      students: request.students.map(rs => ({
+        id: rs.student.id,
+        rollNo: rs.student.rollNo,
+        name: rs.student.user.name,
+        group: rs.student.group ? { id: rs.student.group.id, name: rs.student.group.name } : null,
+      })),
+      // status: request.status, // Overall request status
+      approvals: request.Approvals.map(approval => ({
+        groupId: approval.groupId,
+        groupName: approval.group.name,
+        status: approval.status,
+        currentStepIndex: approval.currentStepIndex,
+        steps: approval.approvalSteps.map(step => ({
+          sequence: step.sequence,
+          status: step.status,
+          comments: step.comments,
+          approvedAt: step.approvedAt,
+          approverId: step.userId,
+        })),
+      })),
+      flowTemplate: {
+        id: request.FlowTemplate?.id,
+        name: request.FlowTemplate?.name,
+        steps: request.FlowTemplate?.steps.map(step => ({
+          sequence: step.sequence,
+          role: step.role,
+        })),
+      },
+    }));
+
+console.log(formattedRequests);
+
+    return formattedRequests;
+  }
+
 }
 
 export const requestService = new RequestService();

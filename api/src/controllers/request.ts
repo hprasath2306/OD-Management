@@ -54,12 +54,31 @@ export class RequestController {
         res.status(403).json({ error: 'Only teachers can view requests' });
         return;
       }
-
+    console.log("sdfgdsf"+res.locals.user.id)
       const requests = await requestService.getApproverRequests(res.locals.user.id);
       res.json({ requests });
     } catch (error: any) {
       console.error(`Error fetching approver requests: ${error.message}`);
       res.status(500).json({ error: 'Failed to fetch requests' });
+    }
+  }
+
+  // Get requests for student
+  async getStudentRequests(req: Request, res: Response) {
+    try {
+      // Check if user is a student
+      if (res.locals.user.role !== UserRole.STUDENT) {
+        res.status(403).json({ error: 'Only students can view their requests' });
+        return;
+      }
+
+      const requests = await requestService.getStudentRequests(res.locals.user.id);
+      res.json({ requests });
+    } catch (error: any) {
+      console.error(`Error fetching student requests: ${error.message}`);
+      res.status(error.message.includes('not a student') ? 403 : 500).json({
+        error: error.message || 'Failed to fetch requests'
+      });
     }
   }
 }
