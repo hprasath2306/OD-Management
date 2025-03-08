@@ -8,7 +8,7 @@ export class RequestController {
     try {
       const request = await requestService.createRequest({
         ...req.body,
-        requestedById: res.locals.id, // From auth middleware
+        requestedById: res.locals.user.id, // From auth middleware
       });
       res.status(201).json(request); 
       return
@@ -49,12 +49,12 @@ export class RequestController {
   async getApproverRequests(req: Request, res: Response) {
     try {
       // Check if user is a teacher
-      if (res.locals.role !== UserRole.TEACHER) {
+      if (res.locals.user.role !== UserRole.TEACHER) {
         res.status(403).json({ error: 'Only teachers can view requests' });
         return;
       }
 
-      const requests = await requestService.getApproverRequests(res.locals.id);
+      const requests = await requestService.getApproverRequests(res.locals.user.id);
       res.json({ requests });
     } catch (error: any) {
       console.error(`Error fetching approver requests: ${error.message}`);

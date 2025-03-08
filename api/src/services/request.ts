@@ -13,7 +13,7 @@ export class RequestService {
     endDate: Date;
     labId?: string | null;
     requestedById: string;
-    students: { studentId: string }[];
+    students: string[]; // Array of User IDs
   }): Promise<Request> {
     // Validate inputs
     if (data.endDate < data.startDate) {
@@ -27,12 +27,8 @@ export class RequestService {
     }
   
     // Pre-transaction checks
-    const [lab, students, flowTemplate] = await Promise.all([
+    const [lab, flowTemplate] = await Promise.all([
       data.labId ? prisma.lab.findUnique({ where: { id: data.labId }, include: { incharge: { include: { user: true } } } }) : null,
-      prisma.student.findMany({
-        where: { id: { in: data.students.map(s => s.studentId) } },
-        include: { group: true },
-      }),
       prisma.flowTemplate.findFirst({
         where: { name: data.needsLab ? "LabFlow" : "NoLabFlow" },
         include: { steps: { orderBy: { sequence: 'asc' } } },
@@ -40,19 +36,21 @@ export class RequestService {
     ]);
   
     if (data.labId && !lab) throw new Error("Lab not found");
-    if (students.length !== data.students.length) throw new Error("One or more students not found");
     if (!flowTemplate) throw new Error(`Flow template not found for ${data.needsLab ? "lab" : "no lab"} flow`);
     if (data.needsLab && !lab?.incharge?.user) throw new Error("Lab in-charge not found");
   
-    // Verify requestedBy is a student
-    const requestedBy = await prisma.user.findUnique({
-      where: { id: data.requestedById },
-      include: { students: true },
-    });
-    if (!requestedBy || !requestedBy.students) throw new Error("RequestedBy must be a student");
-  
     // Create request and approvals in a transaction
     return await prisma.$transaction(async (tx) => {
+      // Validate students by userId
+      const students = await tx.student.findMany({
+        where: { userId: { in: data.students } },
+        include: { group: true },
+      });
+      if (students.length !== data.students.length) {
+        throw new Error(`One or more students not found. Expected userIds: ${data.students}, Found: ${students.map(s => s.userId)}`);
+      }
+  
+      // Create the request
       const request = await tx.request.create({
         data: {
           type: data.type,
@@ -65,17 +63,19 @@ export class RequestService {
           labId: data.labId,
           requestedById: data.requestedById,
           flowTemplateId: flowTemplate.id,
-          students: { create: data.students },
-        },
-        include: {
-          students: { include: { student: { include: { user: true, group: true } } } },
-          lab: true,
-          requestedBy: true,
-          FlowTemplate: { include: { steps: true } },
+          // status: ApprovalStatus.PENDING,
         },
       });
   
-      const uniqueGroupIds = [...new Set(request.students.map(rs => rs.student.groupId))];
+      // Create student associations
+      await tx.requestStudent.createMany({
+        data: students.map(student => ({
+          requestId: request.id,
+          studentId: student.id,
+        })),
+      });
+  
+      const uniqueGroupIds = [...new Set(students.map(s => s.groupId))];
   
       for (const groupId of uniqueGroupIds) {
         const approval = await tx.approval.create({
@@ -92,39 +92,54 @@ export class RequestService {
           include: { teacher: { include: { user: true } } },
         });
   
-        const approvalStepsData = flowTemplate.steps.map((step) => {
-          if (step.role === 'LAB_INCHARGE' && data.needsLab) {
-            // Assign Lab In-Charge from the lab's inchargeId
+        // Get the first step from the flow template
+        const firstStep = flowTemplate.steps.find(step => step.sequence === 1);
+        if (!firstStep) throw new Error("No first step found in flow template");
+  
+        // Create only the first ApprovalStep
+        const approvalStepData = (() => {
+          if (firstStep.role === 'LAB_INCHARGE' && data.needsLab) {
             return {
-              sequence: step.sequence,
+              sequence: firstStep.sequence,
               status: ApprovalStatus.PENDING,
               approvalId: approval.id,
               groupId,
-              userId: lab!.incharge.user.id, // Lab in-charge from pre-fetched lab
+              userId: lab!.incharge.user.id,
             };
           } else {
-            // Assign group-based approvers (Tutor, Year In-Charge, HOD)
-            const approver = approvers.find((a) => a.role === step.role);
-            if (!approver) throw new Error(`No approver found for role ${step.role} in group ${groupId}`);
+            const approver = approvers.find((a) => a.role === firstStep.role);
+            if (!approver) throw new Error(`No approver found for role ${firstStep.role} in group ${groupId}`);
             return {
-              sequence: step.sequence,
+              sequence: firstStep.sequence,
               status: ApprovalStatus.PENDING,
               approvalId: approval.id,
               groupId,
               userId: approver.teacher.userId,
             };
           }
-        });
+        })();
   
-        await tx.approvalStep.createMany({
-          data: approvalStepsData,
+        await tx.approvalStep.create({
+          data: approvalStepData,
         });
       }
   
-      return request;
+      // Fetch and return the updated request
+      const updatedRequest = await tx.request.findUnique({
+        where: { id: request.id },
+        include: {
+          students: { include: { student: { include: { user: true, group: true } } } },
+          lab: true,
+          requestedBy: true,
+          FlowTemplate: { include: { steps: true } },
+        },
+      });
+  
+      if (!updatedRequest) throw new Error("Failed to retrieve updated request");
+  
+      return updatedRequest;
     });
   }
-
   // Process an approval step
   async processApprovalStep(
     requestId: string,

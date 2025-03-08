@@ -13,7 +13,7 @@ const router = Router();
 router.post(
   "/",
   authMiddleware,
-  authorize([UserRole.STUDENT]),
+  authorize([UserRole.ADMIN]),
   validateResource(createRequestSchema),
   requestController.createRequest
 );
