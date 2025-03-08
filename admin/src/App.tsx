@@ -20,6 +20,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Unauthorized } from './pages/Unauthorized';
 import { ODRequests } from './pages/ODRequests';
 import { ODApprovals } from './pages/ODApprovals';
+import { Labs } from './pages/Labs';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -47,6 +48,8 @@ function App() {
                 <Route path="/departments/:departmentId/groups" element={<Groups />} />
                 <Route path="/departments/:departmentId/groups/:groupId/approvers" element={<GroupApprovers />} />
                 <Route path="/departments/:departmentId/groups/:groupId/students" element={<Students />} />
+                <Route path="/labs" element={<Labs />} />
+                <Route path="/departments/:departmentId/labs" element={<Labs />} />
                 <Route path="/designations" element={<Designations />} />
                 <Route path="/flow-templates" element={<FlowTemplates />} />
                 <Route path="/flow-templates/:templateId/steps" element={<FlowSteps />} />
