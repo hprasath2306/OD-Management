@@ -30,11 +30,12 @@ export class RequestController {
       }
 
       const { id } = req.params;
-      const { status, comments } = req.body;
+      const { status, comments ,requestId} = req.body;
 
-      const result = await requestService.processApprovalStep(id, res.locals.id, {
+      const result = await requestService.processApprovalStep(id,  {
         status,
         comments,
+        requestId
       });
 
       res.json(result);

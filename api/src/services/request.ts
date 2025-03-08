@@ -142,10 +142,10 @@ export class RequestService {
   }
   // Process an approval step
   async processApprovalStep(
-    requestId: string,
     userId: string,
     data: {
       status: ApprovalStatus;
+      requestId: string;
       comments?: string;
     }
   ): Promise<{
@@ -157,81 +157,136 @@ export class RequestService {
       where: {
         userId,
         status: ApprovalStatus.PENDING,
-        approval: { requestId },
+        approval: { requestId: data.requestId },
       },
       include: {
         approval: {
           include: {
             approvalSteps: true,
-            request: true,
+            request: { include: { FlowTemplate: { include: { steps: true } } } },
+            group: true,
           },
         },
       },
     });
-
+  
     if (!step) {
       throw new Error('No pending step found for this user');
     }
-
+  
     const approval = step.approval;
-
+  
     return await prisma.$transaction(async (tx) => {
       // Update the current step
       await tx.approvalStep.update({
         where: { id: step.id },
         data: {
-          status: data.status as ApprovalStatus,
+          status: data.status,
           comments: data.comments,
-          approvedAt: new Date(),
+          approvedAt: data.status === ApprovalStatus.APPROVED ? new Date() : null,
         },
       });
-
+  
       if (data.status === ApprovalStatus.REJECTED) {
+        // Update Approval and Request to REJECTED
         await tx.approval.update({
           where: { id: approval.id },
           data: { status: ApprovalStatus.REJECTED },
         });
+        // await tx.request.update({
+        //   where: { id: data.requestId },
+        //   data: { status: ApprovalStatus.REJECTED },
+        // });
         return { message: 'Group approval rejected', status: ApprovalStatus.REJECTED };
       }
-
+  
+      // Handle APPROVED: Check for next step in FlowTemplate
       const nextStepIndex = approval.currentStepIndex + 1;
-      const totalSteps = approval.approvalSteps.length;
-
-      if (nextStepIndex >= totalSteps) {
+      const flowSteps = approval.request.FlowTemplate!.steps; // FlowTemplate is required in schema
+      const nextFlowStep = flowSteps.find(s => s.sequence === nextStepIndex + 1);
+  
+      if (!nextFlowStep) {
+        // No more steps in this group's flow, mark Approval as APPROVED
         await tx.approval.update({
           where: { id: approval.id },
           data: { status: ApprovalStatus.APPROVED },
         });
-      } else {
-        await tx.approval.update({
-          where: { id: approval.id },
-          data: { currentStepIndex: nextStepIndex },
+  
+        // Check all approvals for the request
+        const allApprovals = await tx.approval.findMany({
+          where: { requestId: data.requestId },
         });
+        const allApproved = allApprovals.every(a => a.status === ApprovalStatus.APPROVED);
+        const anyRejected = allApprovals.some(a => a.status === ApprovalStatus.REJECTED);
+  
+        if (anyRejected) {
+          await tx.approval.update({
+            where: { id: data.requestId },
+            data: { status: ApprovalStatus.REJECTED },
+          });
+          return { message: 'Request rejected due to one group rejection', status: ApprovalStatus.REJECTED };
+        }
+  
+        if (allApproved) {
+          await tx.approval.update({
+            where: { id: data.requestId },
+            data: { status: ApprovalStatus.APPROVED },
+          });
+          return { message: 'Request fully approved by all groups', status: ApprovalStatus.APPROVED };
+        }
+  
+        return { message: 'Group approval complete, awaiting other groups', status: ApprovalStatus.PENDING };
       }
-
-      // Check all approvals for the request
-      const allApprovals = await tx.approval.findMany({
-        where: { requestId },
+  
+      // Create the next ApprovalStep
+      const approvers = await tx.groupApprover.findMany({
+        where: { groupId: approval.groupId },
+        include: { teacher: { include: { user: true } } },
       });
-
-      const allApproved = allApprovals.every((a) => a.status === ApprovalStatus.APPROVED);
-      const anyRejected = allApprovals.some((a) => a.status === ApprovalStatus.REJECTED);
-
-      if (anyRejected) {
-       
-       
-        return { message: 'Request rejected due to one group rejection', status: ApprovalStatus.REJECTED };
-      }
-
-      if (allApproved) {
-
-        return { message: 'Request fully approved by all groups', status: ApprovalStatus.APPROVED };
-      }
-
-      return { message: 'Step approved, awaiting other group approvals', status: ApprovalStatus.PENDING };
+  
+      const lab = approval.request.needsLab && approval.request.labId
+        ? await tx.lab.findUnique({
+            where: { id: approval.request.labId },
+            include: { incharge: { include: { user: true } } },
+          })
+        : null;
+  
+      const nextStepData = (() => {
+        if (nextFlowStep.role === 'LAB_INCHARGE' && approval.request.needsLab) {
+          if (!lab) throw new Error('Lab not found for LAB_INCHARGE step');
+          return {
+            sequence: nextFlowStep.sequence,
+            status: ApprovalStatus.PENDING,
+            approvalId: approval.id,
+            groupId: approval.groupId,
+            userId: lab.incharge.user.id,
+          };
+        } else {
+          const approver = approvers.find(a => a.role === nextFlowStep.role);
+          if (!approver) throw new Error(`No approver found for role ${nextFlowStep.role} in group ${approval.groupId}`);
+          return {
+            sequence: nextFlowStep.sequence,
+            status: ApprovalStatus.PENDING,
+            approvalId: approval.id,
+            groupId: approval.groupId,
+            userId: approver.teacher.userId,
+          };
+        }
+      })();
+  
+      await tx.approvalStep.create({
+        data: nextStepData,
+      });
+  
+      // Update currentStepIndex
+      await tx.approval.update({
+        where: { id: approval.id },
+        data: { currentStepIndex: nextStepIndex },
+      });
+  
+      return { message: 'Step approved, next step created', status: ApprovalStatus.PENDING };
     });
   }
-
   // Get requests for approver
   async getApproverRequests(userId: string): Promise<any[]> {
     // Fetch pending ApprovalSteps for this approver

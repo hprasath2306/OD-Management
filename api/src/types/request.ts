@@ -49,6 +49,7 @@ export const processApprovalSchema = z.object({
       errorMap: () => ({ message: "Status must be either APPROVED or REJECTED" }),
     }),
     comments: z.string().optional(),
+    requestId: z.string()
   }),
 })
 
