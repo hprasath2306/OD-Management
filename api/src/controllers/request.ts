@@ -6,6 +6,7 @@ export class RequestController {
   // Create a new request
   async createRequest(req: Request, res: Response) {
     try {
+      console.log("sdfgdsf"+res.locals.user.id)
       const request = await requestService.createRequest({
         ...req.body,
         requestedById: res.locals.user.id, // From auth middleware

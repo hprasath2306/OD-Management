@@ -19,8 +19,8 @@ export const createRequestSchema = z.object({
     description: z.string().optional(),
     startDate: z.string().transform((str) => new Date(str)),
     endDate: z.string().transform((str) => new Date(str)),
-    labId: z.string().uuid("Lab ID must be a valid UUID").optional(),
-    students: z.array(z.string().uuid("Student ID must be a valid UUID")).min(1, "At least one student is required"),
+    labId: z.string().optional(),
+    students: z.array(z.string()).min(1, "At least one student is required"),
   }).refine(
     (data) => {
       const start = new Date(data.startDate)

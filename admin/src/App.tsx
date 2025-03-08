@@ -13,8 +13,12 @@ import { Groups } from './pages/Groups';
 import { GroupApprovers } from './pages/GroupApprovers';
 import { Students } from './pages/Students';
 import { TeacherDesignations } from './pages/TeacherDesignations';
+import { FlowTemplates } from './pages/FlowTemplates';
+import { FlowSteps } from './pages/FlowSteps';
 import { Layout } from './components/Layout';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Unauthorized } from './pages/Unauthorized';
+import { ODRequests } from './pages/ODRequests';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -33,6 +37,9 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
 
+            {/* Unauthorized route */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
+
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
@@ -44,6 +51,9 @@ function App() {
                 <Route path="/departments/:departmentId/groups/:groupId/approvers" element={<GroupApprovers />} />
                 <Route path="/departments/:departmentId/groups/:groupId/students" element={<Students />} />
                 <Route path="/designations" element={<Designations />} />
+                <Route path="/flow-templates" element={<FlowTemplates />} />
+                <Route path="/flow-templates/:templateId/steps" element={<FlowSteps />} />
+                <Route path="/od-requests" element={<ODRequests />} />
               </Route>
             </Route>
 
