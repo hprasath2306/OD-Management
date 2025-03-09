@@ -3,82 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'react-hot-toast';
 import api from '../api/auth';
 import Select from 'react-select';
-
-// Types based on schema
-type ODCategory = 'PROJECT' | 'SIH' | 'SYMPOSIUM' | 'OTHER';
-type RequestType = 'OD' | 'LEAVE';
-type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
-interface Student {
-  id: string;
-  rollNo: string;
-  name: string;
-  user: {
-    id: string;
-    name: string;
-  };
-}
-
-interface Lab {
-  id: string;
-  name: string;
-}
-
-interface ODRequest {
-  id: string;
-  type: RequestType;
-  category: ODCategory;
-  needsLab: boolean;
-  reason: string;
-  description?: string;
-  startDate: string;
-  endDate: string;
-  labId?: string;
-  createdAt: string;
-  students: { id: string; name: string; rollNo: string }[];
-  approvals?: { status: ApprovalStatus }[];
-}
-
-// Form validation schema
-const odRequestSchema = z.object({
-  type: z.enum(['OD', 'LEAVE']),
-  category: z.enum(['PROJECT', 'SIH', 'SYMPOSIUM', 'OTHER']).optional(),
-  needsLab: z.boolean().default(false),
-  reason: z.string().min(1, "Reason is required"),
-  description: z.string().optional(),
-  startDate: z.string(),
-  endDate: z.string(),
-  labId: z.string().optional(),
-  isTeamRequest: z.boolean().default(false),
-  students: z.array(z.object({
-    value: z.string(),
-    label: z.string()
-  })).optional(),
-}).refine(
-  (data) => {
-    const start = new Date(data.startDate);
-    const end = new Date(data.endDate);
-    return end >= start;
-  },
-  {
-    message: "End date must be after or equal to start date",
-    path: ["endDate"]
-  }
-).refine(
-  (data) => {
-    return !data.needsLab || (data.needsLab && data.labId);
-  },
-  {
-    message: "Lab ID is required when lab access is needed",
-    path: ["labId"]
-  }
-);
-
-type ODRequestFormValues = z.infer<typeof odRequestSchema>;
+import ODRequestDetailsModel from '../components/ODRequestDetailsModel';
+import { ODRequest, Lab, Student, ODRequestFormValues, odRequestSchema } from '../api/request';
 
 export function ODRequests() {
   const { user } = useAuth();
@@ -87,8 +16,9 @@ export function ODRequests() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [labs, setLabs] = useState<Lab[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<ODRequest | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  // Form setup
   const { register, handleSubmit, reset, watch, control, setValue, formState: { errors } } = useForm<ODRequestFormValues>({
     resolver: zodResolver(odRequestSchema),
     defaultValues: {
@@ -100,8 +30,9 @@ export function ODRequests() {
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0],
       isTeamRequest: false,
-      students: []
-    },
+      students: [
+      ],
+    }
   });
 
   const needsLab = watch('needsLab');
@@ -197,7 +128,6 @@ export function ODRequests() {
     loadRequests();
     loadLabs();
     loadStudents();
-
   }, []);
 
   const handleOpenModal = () => {
@@ -222,8 +152,17 @@ export function ODRequests() {
     }
   };
 
-  return (
+  const handleOpenDetailsModal = (request: ODRequest) => {
+    setSelectedRequest(request);
+    setIsDetailsModalOpen(true);
+  };
 
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedRequest(null);
+  };
+
+  return (
     <>
       <header>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -273,6 +212,9 @@ export function ODRequests() {
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Dates</th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Students</th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                            <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                              <span className="sr-only">Details</span>
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
@@ -312,6 +254,14 @@ export function ODRequests() {
                                 ) : (
                                   <span>Pending</span>
                                 )}
+                              </td>
+                              <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                <button
+                                  onClick={() => handleOpenDetailsModal(request)}
+                                  className="text-blue-600 hover:text-blue-900"
+                                >
+                                  Details
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -357,7 +307,7 @@ export function ODRequests() {
                           )}
                         </div>
 
-                        {/* Category - Only show for OD requests */}
+           {/* Category - Only show for OD requests */}
                         {requestType === 'OD' && (
                           <div>
                             <label htmlFor="category" className="block text-sm font-medium text-gray-700">
@@ -551,6 +501,11 @@ export function ODRequests() {
           </div>
         </div>
       )}
+
+      {/* Details Modal */}
+      {isDetailsModalOpen && selectedRequest && (
+        <ODRequestDetailsModel selectedRequest={selectedRequest} handleCloseDetailsModal={handleCloseDetailsModal} labs={labs} />
+      )}
     </>
   );
-} 
+}
