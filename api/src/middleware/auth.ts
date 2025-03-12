@@ -41,7 +41,7 @@ export const authMiddleware = async (
             where: { id: user.id },
             select: { id: true, email: true, role: true }, // Ensure role is selected
         });
-        console.log("dbUser",dbUser);
+        // console.log("dbUser",dbUser);
         res.locals.user = dbUser; 
     } else {
         res.locals.user = null;

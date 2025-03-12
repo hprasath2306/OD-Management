@@ -203,7 +203,7 @@ export class RequestService {
       // Handle APPROVED: Check for next step in FlowTemplate
       const nextStepIndex = approval.currentStepIndex + 1;
       const flowSteps = approval.request.FlowTemplate!.steps; // FlowTemplate is required in schema
-      const nextFlowStep = flowSteps.find(s => s.sequence === nextStepIndex + 1);
+      const nextFlowStep = flowSteps.find(s => s.sequence === nextStepIndex );
   
       if (!nextFlowStep) {
         // No more steps in this group's flow, mark Approval as APPROVED
@@ -251,7 +251,7 @@ export class RequestService {
           })
         : null;
   
-      const nextStepData = (() => {
+      const nextStepData =  (async () => {
         if (nextFlowStep.role === 'LAB_INCHARGE' && approval.request.needsLab) {
           if (!lab) throw new Error('Lab not found for LAB_INCHARGE step');
           return {
@@ -261,7 +261,32 @@ export class RequestService {
             groupId: approval.groupId,
             userId: lab.incharge.user.id,
           };
-        } else {
+        }
+        else if(nextFlowStep.role === 'HOD') {
+          // const hod = approvers.find(a => a.role === Role.HOD);
+          const groupDepartmentId = approval.group.departmentId;
+          const hod = await tx.teacher.findFirst({
+          where: {
+            departmentId: groupDepartmentId,
+            teacherDesignations: {
+              some: {
+                designation: { role: 'HOD' },
+              },
+            },
+          },
+          include: { user: true },
+        });
+
+        if (!hod) throw new Error(`No HOD found for department ${groupDepartmentId}`);
+        return {
+          sequence: nextFlowStep.sequence,
+          status: ApprovalStatus.PENDING,
+          approvalId: approval.id,
+          groupId: approval.groupId,
+          userId: hod.user.id,
+        };
+        }
+        else {
           const approver = approvers.find(a => a.role === nextFlowStep.role);
           if (!approver) throw new Error(`No approver found for role ${nextFlowStep.role} in group ${approval.groupId}`);
           return {
@@ -275,7 +300,7 @@ export class RequestService {
       })();
   
       await tx.approvalStep.create({
-        data: nextStepData,
+        data: await nextStepData,
       });
   
       // Update currentStepIndex

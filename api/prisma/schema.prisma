@@ -204,6 +204,7 @@ model Approval {
   currentStepIndex Int            @default(0)
   requestId        String         
   groupId          String
+
   group            Group          @relation(fields: [groupId], references: [id])
   request          Request        @relation(fields: [requestId], references: [id])
   approvalSteps    ApprovalStep[]

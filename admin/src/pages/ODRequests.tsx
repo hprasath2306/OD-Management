@@ -129,7 +129,7 @@ export function ODRequests() {
   const loadRequests = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/request/my-requests');
+      const response = await api.get('/requests/student');
       setRequests(response.data);
     } catch (error) {
       console.error('Error loading requests:', error);
@@ -174,7 +174,8 @@ export function ODRequests() {
     //   if (studentData) {
     //     setCurrentStudent(studentData);
     //   }
-    setCurrentStudent(user);
+      setCurrentStudent(user);
+      
     } catch (error) {
       console.error('Error loading current student:', error);
     }
