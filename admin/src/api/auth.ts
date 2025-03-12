@@ -25,6 +25,12 @@ export interface User {
   image?: string;
 }
 
+export interface Student {
+  id: string;
+  rollNo: string;
+  name: string;
+}
+
 export interface AuthResponse {
   user: User;
   session: string;

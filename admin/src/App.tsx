@@ -19,6 +19,8 @@ import { Layout } from './components/Layout';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Unauthorized } from './pages/Unauthorized';
 import { ODRequests } from './pages/ODRequests';
+import { ODApprovals } from './pages/ODApprovals';
+import { Labs } from './pages/Labs';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -31,33 +33,32 @@ function App() {
           <Toaster position="top-right" />
           <Routes>
             {/* Public routes */}
-            <Route element={<PublicRoute />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/login" element={<PublicRoute />}>
+              <Route index element={<Login />} />
             </Route>
-
-            {/* Unauthorized route */}
             <Route path="/unauthorized" element={<Unauthorized />} />
 
             {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<ProtectedRoute />}>
               <Route element={<Layout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route index element={<Dashboard />} />
                 <Route path="/departments" element={<Departments />} />
                 <Route path="/departments/:departmentId/teachers" element={<DepartmentTeachers />} />
                 <Route path="/departments/:departmentId/teachers/:teacherId/designations" element={<TeacherDesignations />} />
                 <Route path="/departments/:departmentId/groups" element={<Groups />} />
                 <Route path="/departments/:departmentId/groups/:groupId/approvers" element={<GroupApprovers />} />
                 <Route path="/departments/:departmentId/groups/:groupId/students" element={<Students />} />
+                <Route path="/labs" element={<Labs />} />
+                <Route path="/departments/:departmentId/labs" element={<Labs />} />
                 <Route path="/designations" element={<Designations />} />
                 <Route path="/flow-templates" element={<FlowTemplates />} />
                 <Route path="/flow-templates/:templateId/steps" element={<FlowSteps />} />
                 <Route path="/od-requests" element={<ODRequests />} />
+                <Route path="/od-approvals" element={<ODApprovals />} />
               </Route>
             </Route>
 
-            {/* Redirect to login by default */}
+            {/* Default redirect to login */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </AuthProvider>

@@ -11,6 +11,7 @@ export const authMiddleware = async (
 ) => {
     const auth = req.headers.authorization;
     const sessionId = lucia.readSessionCookie(req.headers.cookie ?? auth ?? "");
+    console.log("sessionId",sessionId);
     // If the session ID is not present, the user is not logged in.
     if (!sessionId) {
         res.locals.user = null;

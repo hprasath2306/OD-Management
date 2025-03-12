@@ -2,7 +2,7 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const adminNavigation = [
-  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'Dashboard', href: '/' },
   { name: 'Departments', href: '/departments' },
   { name: 'Designations', href: '/designations' },
   { name: 'Flow Templates', href: '/flow-templates' },
@@ -23,16 +23,17 @@ export function Layout() {
   
   // Determine which navigation items to show based on user role
   const getNavigation = () => {
-    switch (user?.role) {
-      case 'ADMIN':
-        return adminNavigation;
-      case 'STUDENT':
-        return studentNavigation;
-      case 'TEACHER':
-        return teacherNavigation;
-      default:
-        return [];
+    if (user?.role === 'ADMIN') {
+      return adminNavigation;
+    } else if (user?.role === 'STUDENT') {
+      return studentNavigation;
+    } else if (user?.role === 'TEACHER') {
+      return [
+        { name: 'Dashboard', href: '/' },
+        { name: 'OD Requests', href: '/od-approvals' }
+      ];
     }
+    return [];
   };
 
   const navigation = getNavigation();

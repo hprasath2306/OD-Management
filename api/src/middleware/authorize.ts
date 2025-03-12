@@ -19,7 +19,7 @@ export const authorize = (allowedRoles: UserRole[]) => {
     try {
       // Check if user exists (should be set by authenticate middleware)
       // console.log(req.)
-      // console.log(res.locals.user);
+      console.log(res.locals.user);
       if (!res.locals.user) {
         res.status(401).json({
           success: false,

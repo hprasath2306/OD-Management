@@ -193,10 +193,10 @@ export class RequestService {
           where: { id: approval.id },
           data: { status: ApprovalStatus.REJECTED },
         });
-        // await tx.request.update({
-        //   where: { id: data.requestId },
-        //   data: { status: ApprovalStatus.REJECTED },
-        // });
+        await tx.request.update({
+          where: { id: data.requestId },
+          data: { status: ApprovalStatus.REJECTED },
+        });
         return { message: 'Group approval rejected', status: ApprovalStatus.REJECTED };
       }
   
@@ -220,7 +220,7 @@ export class RequestService {
         const anyRejected = allApprovals.some(a => a.status === ApprovalStatus.REJECTED);
   
         if (anyRejected) {
-          await tx.approval.update({
+          await tx.request.update({
             where: { id: data.requestId },
             data: { status: ApprovalStatus.REJECTED },
           });
@@ -228,7 +228,7 @@ export class RequestService {
         }
   
         if (allApproved) {
-          await tx.approval.update({
+          await tx.request.update({
             where: { id: data.requestId },
             data: { status: ApprovalStatus.APPROVED },
           });
