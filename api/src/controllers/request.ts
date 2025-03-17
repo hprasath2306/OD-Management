@@ -94,6 +94,16 @@ export class RequestController {
     }
   }
 
+  async getGroupRequests(req: Request, res: Response) { 
+    try {
+      const requests = await requestService.getGroupRequests(res.locals.user.id);
+
+      res.json({ requests });
+    } catch (error: any) {
+      console.error(`Error fetching grouped requests: ${error.message}`);
+      res.status(500).json({ error: 'Failed to fetch requests' });
+    }
+  }
   
 
 

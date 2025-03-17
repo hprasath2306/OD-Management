@@ -11,6 +11,8 @@ const adminNavigation = [
 
 const teacherNavigation = [
   { name: 'Dashboard', href: '/dashboard' },
+  { name: 'OD Requests', href: '/od-approvals' },
+  { name: 'Results', href: '/results' },
 ];
 
 const studentNavigation = [
@@ -29,10 +31,7 @@ export function Layout() {
     } else if (user?.role === 'STUDENT') {
       return studentNavigation;
     } else if (user?.role === 'TEACHER') {
-      return [
-        { name: 'Dashboard', href: '/' },
-        { name: 'OD Requests', href: '/od-approvals' }
-      ];
+      return  teacherNavigation;
     }
     return [];
   };

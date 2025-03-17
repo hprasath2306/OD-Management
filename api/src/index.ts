@@ -41,7 +41,7 @@ app.use("/api/flow-steps", flowStepRoutes);
 app.use("/api/requests", requestRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Server is running");
+  res.send("Server is runnig");
 });
 
 app.listen(port, () => {

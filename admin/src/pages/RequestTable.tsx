@@ -8,6 +8,7 @@ import { filterRequests } from '../utils/FilterUtils';
 import FilterPanel from '../components/FIlterPanel';
 import RequestTableBody from '../components/RequestBody';
 import api from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
 const RequestTableContainer: React.FC = () => {
   const [requests, setRequests] = useState<Request[]>([]);
@@ -24,12 +25,24 @@ const RequestTableContainer: React.FC = () => {
   const [showDateRange, setShowDateRange] = useState<boolean>(false);
 
   const itemsPerPage: number = 10;
+   const { user } = useAuth();
 
   useEffect(() => {
     const loadRequests = async () => {
-      const data = await api.get('/requests');
-      setRequests(data.data.requests);
-      setFilteredRequests(data.data.requests);
+
+
+      if (user?.role === "ADMIN") {
+
+        const data = await api.get('/requests');
+        setRequests(data.data.requests);
+        setFilteredRequests(data.data.requests);
+      }
+      else {
+        const data = await api.get(`/requests/group`);
+        setRequests(data.data.requests);
+        setFilteredRequests(data.data.requests);
+      }
+
     };
     loadRequests();
   }, []);

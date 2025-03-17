@@ -573,6 +573,97 @@ console.log(formattedRequests);
 
   }
 
+  // like the getallrequests reponse for admin
+  // get all requests for groups like hod, YearIncharge, teacher  based on ther ids
+  
+
+  async getGroupRequests(userId: string): Promise<any[]> {
+    // First verify the user is a student
+    console.log("userId", userId);
+    const teacher = await prisma.teacher.findUnique({
+      where: { userId },
+      include: { user: true },
+    });
+
+    if (!teacher) {
+      throw new Error('User is not a teacher');
+    }
+    console.log("teacher", teacher);
+    // Fetch all requests associated with the student
+    const requests = await prisma.request.findMany({
+      include: {
+        students: {
+          include: {
+            student: {
+              include: { user: true, group: true }, // Include student details
+            },
+          },
+        },
+        lab: true, // Include lab details if applicable
+        requestedBy: true, // Include the user who requested it
+        FlowTemplate: {
+          include: { steps: true }, // Include the approval flow template
+        },
+        Approvals: {
+          include: {
+            approvalSteps: true, // Include approval steps for status tracking
+            group: true, // Include group details
+          },
+        },
+      },
+    });
+
+    // Format the response (optional, adjust based on your needs)
+    const formattedRequests = requests.map(request => ({
+      id: request.id,
+      type: request.type,
+      category: request.category,
+      needsLab: request.needsLab,
+      reason: request.reason,
+      description: request.description,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      lab: request.lab ? { id: request.lab.id, name: request.lab.name } : null,
+      requestedBy: {
+        id: request.requestedBy.id,
+        name: request.requestedBy.name,
+        email: request.requestedBy.email,
+      },
+      students: request.students.map(rs => ({
+        id: rs.student.id,
+        rollNo: rs.student.rollNo,
+        name: rs.student.user.name,
+        group: rs.student.group ? { id: rs.student.group.id, name: rs.student.group.name } : null,
+      }),
+      ),
+      // status: request.status, // Overall request status
+      approvals: request.Approvals.map(approval => ({
+        groupId: approval.groupId,
+        groupName: approval.group.name,
+        status: approval.status,
+        currentStepIndex: approval.currentStepIndex,
+        steps: approval.approvalSteps.map(step => ({
+          sequence: step.sequence,
+          status: step.status,
+          comments: step.comments,
+          approvedAt: step.approvedAt,
+          approverId: step.userId,
+        })),
+      }),
+      ),
+      flowTemplate: {
+        id: request.FlowTemplate?.id,
+        name: request.FlowTemplate?.name,
+        steps: request.FlowTemplate?.steps.map(step => ({
+          sequence: step.sequence,
+          role: step.role,
+        })),
+      },
+    }));
+  
+    return formattedRequests;
+  }
+
 }
 
 
