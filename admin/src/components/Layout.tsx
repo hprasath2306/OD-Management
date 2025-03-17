@@ -6,6 +6,7 @@ const adminNavigation = [
   { name: 'Departments', href: '/departments' },
   { name: 'Designations', href: '/designations' },
   { name: 'Flow Templates', href: '/flow-templates' },
+  { name: 'Results', href: '/results' },
 ];
 
 const teacherNavigation = [

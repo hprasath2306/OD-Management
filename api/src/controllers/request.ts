@@ -82,6 +82,21 @@ export class RequestController {
       });
     }
   }
+ 
+  // Get all requests
+  async getAllRequests(req: Request, res: Response) {
+    try {
+      const requests = await requestService.getAllRequests();
+      res.json({ requests });
+    } catch (error: any) {
+      console.error(`Error fetching requests: ${error.message}`);
+      res.status(500).json({ error: 'Failed to fetch requests' });
+    }
+  }
+
+  
+
+
 }
 
 export const requestController = new RequestController(); 

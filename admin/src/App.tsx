@@ -21,6 +21,7 @@ import { Unauthorized } from './pages/Unauthorized';
 import { ODRequests } from './pages/ODRequests';
 import { ODApprovals } from './pages/ODApprovals';
 import { Labs } from './pages/Labs';
+import RequestTable from './pages/RequestTable';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -37,7 +38,7 @@ function App() {
               <Route index element={<Login />} />
             </Route>
             <Route path="/unauthorized" element={<Unauthorized />} />
-
+            
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute />}>
               <Route element={<Layout />}>
@@ -55,6 +56,7 @@ function App() {
                 <Route path="/flow-templates/:templateId/steps" element={<FlowSteps />} />
                 <Route path="/od-requests" element={<ODRequests />} />
                 <Route path="/od-approvals" element={<ODApprovals />} />
+                <Route path="/results" element={<RequestTable/>} />
               </Route>
             </Route>
 

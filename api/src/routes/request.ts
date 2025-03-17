@@ -43,6 +43,13 @@ router.get(
   requestController.getStudentRequests
 );
 
+router.get(
+  "/",
+  authMiddleware,
+  authorize([UserRole.ADMIN]),
+  requestController.getAllRequests
+);
+
 // Get all requests (Authenticated users)
 // Can filter by studentId, groupId, and status using query params
 
