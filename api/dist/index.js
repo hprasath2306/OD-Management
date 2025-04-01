@@ -15,12 +15,10 @@ import requestRoutes from "./routes/request.js";
 const app = express();
 app.use(
     cors({
-      origin: (origin, callback) => {
-        callback(null, origin || "*"); // Allow any origin
-      },
-      credentials: true, // Allow cookies/auth headers
+        origin: ["https://psna-acadify.vercel.app", "http://localhost:5173"],
+        credentials: true,
     })
-  );
+);
 app.use(urlencoded({ extended: false }));
 app.use(express.json());
 const port = 3000;
