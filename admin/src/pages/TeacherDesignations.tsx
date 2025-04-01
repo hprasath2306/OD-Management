@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { teacherDesignationApi, TeacherDesignation } from '../api/teacherDesignation';
 import { teacherApi } from '../api/teacher';
-import { designationApi, Designation } from '../api/designation';
+import { designationApi } from '../api/designation';
 import { Spinner } from '../components/ui/Spinner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { useNavigate, useParams } from 'react-router-dom';
 
 // Form validation schemas
 const designationSchema = z.object({
@@ -19,7 +18,7 @@ const designationSchema = z.object({
 type DesignationFormValues = z.infer<typeof designationSchema>;
 
 export function TeacherDesignations() {
-  const { teacherId, departmentId } = useParams<{ teacherId: string; departmentId: string }>();
+  const { teacherId } = useParams<{ teacherId: string; departmentId: string }>();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDesignation, setEditingDesignation] = useState<TeacherDesignation | null>(null);

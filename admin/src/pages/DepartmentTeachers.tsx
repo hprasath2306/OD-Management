@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { teacherApi, Teacher, CreateTeacherDto, UpdateTeacherDto } from '../api/teacher';
 import { departmentApi } from '../api/department';
 import { Spinner } from '../components/ui/Spinner';
@@ -21,7 +21,7 @@ type TeacherFormValues = z.infer<typeof teacherSchema>;
 
 export function DepartmentTeachers() {
   const { departmentId } = useParams<{ departmentId: string }>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const queryClient = useQueryClient();

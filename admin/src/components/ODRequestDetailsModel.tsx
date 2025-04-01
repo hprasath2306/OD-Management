@@ -13,7 +13,6 @@ import {
 function ODRequestDetailsModel({
   selectedRequest,
   handleCloseDetailsModal,
-  labs,
 }: {
   selectedRequest: ODRequest;
   handleCloseDetailsModal: () => void;

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { designationApi, Designation, CreateDesignationDto, UpdateDesignationDto, Role } from '../api/designation';
+import { designationApi, Designation, UpdateDesignationDto, Role } from '../api/designation';
 import { Spinner } from '../components/ui/Spinner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
 
 // Form validation schemas
 const designationSchema = z.object({
@@ -20,7 +19,7 @@ const designationSchema = z.object({
 type DesignationFormValues = z.infer<typeof designationSchema>;
 
 export function Designations() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDesignation, setEditingDesignation] = useState<Designation | null>(null);
   const queryClient = useQueryClient();

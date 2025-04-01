@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { flowTemplateApi, flowStepApi, FlowTemplate, FlowStep, CreateFlowStepDto, Role } from '../api/flowTemplate';
+import { flowTemplateApi, flowStepApi, FlowStep, CreateFlowStepDto, Role } from '../api/flowTemplate';
 import { Spinner } from '../components/ui/Spinner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';

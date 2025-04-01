@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { labApi, Lab, CreateLabDto, UpdateLabDto } from '../api/lab';
+import { labApi, Lab, UpdateLabDto } from '../api/lab';
 import { departmentApi } from '../api/department';
 import { teacherApi } from '../api/teacher';
 import { Spinner } from '../components/ui/Spinner';

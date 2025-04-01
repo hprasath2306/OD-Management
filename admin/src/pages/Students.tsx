@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { studentApi, Student, CreateStudentDto, UpdateStudentDto } from '../api/student';
+import { studentApi, Student, UpdateStudentDto } from '../api/student';
 import { Spinner } from '../components/ui/Spinner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 
 // Form validation schemas

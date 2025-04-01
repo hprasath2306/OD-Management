@@ -81,6 +81,8 @@ export function ODApprovals() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTeacherId, setCurrentTeacherId] = useState<string>(user?.id || '');
 
+
+
   console.log(selectedRequest)
 
   // Load teacher's pending approval requests
@@ -98,7 +100,7 @@ export function ODApprovals() {
       setIsLoading(false);
     }
   };
-
+  console.log(setCurrentTeacherId)
   // Approve or reject a request
   const handleApproval = async (requestId: string, approve: boolean) => {
     try {

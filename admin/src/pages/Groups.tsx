@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { groupApi, Group, CreateGroupDto, UpdateGroupDto } from '../api/group';
+import { groupApi, Group, UpdateGroupDto } from '../api/group';
 import { Spinner } from '../components/ui/Spinner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { Link, useParams } from 'react-router-dom';
 
 // Form validation schemas
 const groupSchema = z.object({
@@ -20,7 +19,7 @@ type GroupFormValues = z.infer<typeof groupSchema>;
 
 export function Groups() {
   const { departmentId } = useParams<{ departmentId: string }>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const queryClient = useQueryClient();

@@ -19,7 +19,7 @@ export function ODRequests() {
   const [selectedRequest, setSelectedRequest] = useState<ODRequest | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  const { register, handleSubmit, reset, watch, control, setValue, formState: { errors } } = useForm<ODRequestFormValues>({
+  const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm<ODRequestFormValues>({
     resolver: zodResolver(odRequestSchema),
     defaultValues: {
       type: 'OD',

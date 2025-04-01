@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { departmentApi, Department, CreateDepartmentDto, UpdateDepartmentDto } from '../api/department';
+import { departmentApi, Department, UpdateDepartmentDto } from '../api/department';
 import { Spinner } from '../components/ui/Spinner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
