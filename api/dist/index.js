@@ -14,7 +14,7 @@ import flowStepRoutes from "./routes/flowStep.js";
 import requestRoutes from "./routes/request.js";
 const app = express();
 app.use(cors({
-    origin: "https://psna-acadify.vercel.app/",
+    origin: "https://psna-acadify.vercel.app",
     credentials: true,
 }));
 app.use(urlencoded({ extended: false }));
