@@ -11,6 +11,7 @@
   },
   "type": "module",
   "keywords": [],
+  "module": "CommonJS",
   "author": "",
   "license": "ISC",
   "dependencies": {
