@@ -2,6 +2,7 @@ import { lucia } from "../utils/lucia.js";
 import prisma from "../db/config.js";
 export const authMiddleware = async (req, res, next) => {
     const auth = req.headers.authorization;
+    // console.log("auth", auth);
     const sessionId = lucia.readSessionCookie(req.headers.cookie ?? auth ?? "");
     console.log("sessionId", sessionId);
     // If the session ID is not present, the user is not logged in.
