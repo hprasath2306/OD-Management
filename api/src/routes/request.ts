@@ -54,7 +54,7 @@ router.get(
   "/group",
   authMiddleware,
   authorize([UserRole.TEACHER]),
-  requestController.getAllRequests
+  requestController.getGroupRequests
 );
 
 

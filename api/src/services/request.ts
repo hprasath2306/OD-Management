@@ -541,7 +541,8 @@ console.log(formattedRequests);
         id: rs.student.id,
         rollNo: rs.student.rollNo,
         name: rs.student.user.name,
-        group: rs.student.group ? { id: rs.student.group.id, name: rs.student.group.name } : null,
+        group: rs.student.group ? { id: rs.student.group.id, name: rs.student.group.name , section: rs.student.group.section,
+          batch:rs.student.group.batch,} : null,
       }),
       ),
       // status: request.status, // Overall request status
@@ -576,45 +577,111 @@ console.log(formattedRequests);
   // like the getallrequests reponse for admin
   // get all requests for groups like hod, YearIncharge, teacher  based on ther ids
   
+// Fetch all requests associated with the teacher
+async getGroupRequests(userId: string): Promise<any[]> {
+  // First verify the user is a teacher
+  console.log("userId", userId);
+  const teacher = await prisma.teacher.findUnique({
+    where: { userId },
+    include: { user: true },
+  });
 
-  async getGroupRequests(userId: string): Promise<any[]> {
-    // First verify the user is a student
-    console.log("userId", userId);
-    const teacher = await prisma.teacher.findUnique({
-      where: { userId },
-      include: { user: true },
-    });
+  if (!teacher) {
+    throw new Error('User is not a teacher');
+  }
+  console.log("teacher", teacher);
 
-    if (!teacher) {
-      throw new Error('User is not a teacher');
-    }
-    console.log("teacher", teacher);
-    // Fetch all requests associated with the student
-    const requests = await prisma.request.findMany({
-      include: {
-        students: {
-          include: {
-            student: {
-              include: { user: true, group: true }, // Include student details
+  // Fetch all requests associated with the teacher
+  const requests = await prisma.request.findMany({
+    where: {
+      OR: [
+        // Requests where the teacher is an approver in any approval step
+        {
+          Approvals: {
+            some: {
+              approvalSteps: {
+                some: {
+                  userId: teacher.userId, // Teacher is directly involved in an approval step
+                },
+              },
             },
           },
         },
-        lab: true, // Include lab details if applicable
-        requestedBy: true, // Include the user who requested it
-        FlowTemplate: {
-          include: { steps: true }, // Include the approval flow template
+        // Requests where the teacher is a group approver (e.g., TUTOR, YEAR_INCHARGE)
+        {
+          Approvals: {
+            some: {
+              group: {
+                groupApprovers: {
+                  some: {
+                    teacherId: teacher.id,
+                  },
+                },
+              },
+            },
+          },
         },
-        Approvals: {
-          include: {
-            approvalSteps: true, // Include approval steps for status tracking
-            group: true, // Include group details
+        // Requests where the teacher is a lab in-charge (if applicable)
+        {
+          needsLab: true,
+          lab: {
+            inchargeId: teacher.id,
+          },
+        },
+      ],
+    },
+    include: {
+      students: {
+        include: {
+          student: {
+            include: { user: true, group: { include: { department: true } } },
           },
         },
       },
-    });
+      lab: true,
+      requestedBy: true,
+      FlowTemplate: {
+        include: { steps: true },
+      },
+      Approvals: {
+        include: {
+          approvalSteps: {
+            include: {
+              User: true, // Include approver details
+            },
+          },
+          group: { include: { department: true } },
+        },
+      },
+    },
+  });
 
-    // Format the response (optional, adjust based on your needs)
-    const formattedRequests = requests.map(request => ({
+  // Format the response
+  const formattedRequests = requests.map(request => {
+    // Map groupId to approval details for student mapping
+    const groupApprovalMap = new Map(
+      request.Approvals.map(approval => [
+        approval.groupId,
+        {
+          status: approval.status,
+          currentStepIndex: approval.currentStepIndex,
+          steps: approval.approvalSteps.map(step => ({
+            sequence: step.sequence,
+            status: step.status,
+            comments: step.comments,
+            approvedAt: step.approvedAt,
+            approver: step.User ? {
+              id: step.User.id,
+              name: step.User.name,
+              email: step.User.email,
+              role: step.User.role,
+            } : null,
+          })),
+        },
+      ])
+    );
+
+    return {
       id: request.id,
       type: request.type,
       category: request.category,
@@ -633,13 +700,34 @@ console.log(formattedRequests);
         id: rs.student.id,
         rollNo: rs.student.rollNo,
         name: rs.student.user.name,
-        group: rs.student.group ? { id: rs.student.group.id, name: rs.student.group.name } : null,
-      }),
-      ),
-      // status: request.status, // Overall request status
+        group: rs.student.group ? {
+          id: rs.student.group.id,
+          name: rs.student.group.name,
+          section: rs.student.group.section,
+          batch:rs.student.group.batch,
+          department: rs.student.group.department ? {
+            id: rs.student.group.department.id,
+            name: rs.student.group.department.name,
+          } : null,
+        } : null,
+        approval: rs.student.groupId ? groupApprovalMap.get(rs.student.groupId) || {
+          status: 'PENDING',
+          currentStepIndex: 0,
+          steps: [],
+        } : {
+          status: 'PENDING',
+          currentStepIndex: 0,
+          steps: [],
+        },
+      })),
+      status: request.status, // Overall request status
       approvals: request.Approvals.map(approval => ({
         groupId: approval.groupId,
         groupName: approval.group.name,
+        department: approval.group.department ? {
+          id: approval.group.department.id,
+          name: approval.group.department.name,
+        } : null,
         status: approval.status,
         currentStepIndex: approval.currentStepIndex,
         steps: approval.approvalSteps.map(step => ({
@@ -647,22 +735,27 @@ console.log(formattedRequests);
           status: step.status,
           comments: step.comments,
           approvedAt: step.approvedAt,
-          approverId: step.userId,
+          approver: step.User ? {
+            id: step.User.id,
+            name: step.User.name,
+            email: step.User.email,
+            role: step.User.role,
+          } : null,
         })),
-      }),
-      ),
+      })),
       flowTemplate: {
         id: request.FlowTemplate?.id,
         name: request.FlowTemplate?.name,
         steps: request.FlowTemplate?.steps.map(step => ({
           sequence: step.sequence,
           role: step.role,
-        })),
+        })) || [],
       },
-    }));
-  
-    return formattedRequests;
-  }
+    };
+  });
+
+  return formattedRequests;
+}
 
 }
 

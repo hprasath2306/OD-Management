@@ -221,7 +221,7 @@ export class StudentService {
       email?: string;
       phone?: string;
       rollNo?: string;
-      regNo?: string;
+      regNo: string;
       attendancePercentage?: number | null;
       groupId?: string;
     }
@@ -232,6 +232,9 @@ export class StudentService {
     if (!student) {
       throw new Error('Student not found');
     }
+    
+    const hashedPassword = await new Argon2id().hash(studentData.regNo);
+
 
     return await prisma.$transaction(async (tx) => {
       // Update user information if provided
@@ -242,6 +245,7 @@ export class StudentService {
             name,
             email,
             phone,
+            password: hashedPassword,
           },
         });
       }

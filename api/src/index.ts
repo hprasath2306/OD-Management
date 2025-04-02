@@ -16,7 +16,7 @@ import requestRoutes from "./routes/request";
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "http://localhost:5174",
     credentials: true,
   })
 );
@@ -43,6 +43,7 @@ app.use("/api/requests", requestRoutes);
 app.get("/", (req, res) => {
   res.send("Server is runnig");
 });
+
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

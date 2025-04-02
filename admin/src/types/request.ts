@@ -5,6 +5,8 @@ export interface Student {
   group: {
     id: string;
     name: string;
+    section: string;
+    batch: string;
   };
 }
 
