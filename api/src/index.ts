@@ -16,7 +16,7 @@ import requestRoutes from "./routes/request.js";
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://clovers-acadify.vercel.app"],
     credentials: true,
   })
 );
