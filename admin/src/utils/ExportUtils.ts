@@ -19,7 +19,7 @@ export const exportToExcel = (requests: Request[], filename: string): void => {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Requests');
   
-  const colWidths = Object.keys(exportData[0]).map((key, i) => ({
+  const colWidths = Object.keys(exportData[0]).map((key) => ({
     wch: Math.max(
       key.length,
       ...exportData.map(row => String(row[key as keyof typeof row]).length)
