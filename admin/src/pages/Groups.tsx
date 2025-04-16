@@ -116,7 +116,7 @@ export function Groups() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <Spinner size="lg" />
+        <Spinner size="lg" className="text-purple-500" />
       </div>
     );
   }
@@ -124,14 +124,17 @@ export function Groups() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900">Error loading groups</h3>
-          <p className="mt-1 text-sm text-gray-500">
+        <div className="text-center bg-gradient-to-br from-gray-900/80 to-slate-800/80 backdrop-blur-md rounded-xl shadow-xl border border-gray-700/50 p-8 max-w-lg">
+          <svg className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h3 className="text-lg font-medium text-white">Error loading groups</h3>
+          <p className="mt-1 text-sm text-gray-300">
             {error instanceof Error ? error.message : 'Something went wrong'}
           </p>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['groups', departmentId] })}
-            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-slate-900 transition-colors"
           >
             Retry
           </button>
@@ -141,268 +144,367 @@ export function Groups() {
   }
 
   return (
-    <>
-      <header>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center">
+    <div className="py-8 px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="mb-8 relative">
+        <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 opacity-20 blur-3xl"></div>
+        <div className="relative z-10 flex items-center">
           <Link
-              to="/departments"
-              className="mr-2 text-blue-600 hover:text-blue-900"
+            to="/departments"
+            className="mr-3 text-purple-400 hover:text-purple-300 transition-colors flex items-center"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </Link>
-            <h1 className="text-3xl font-bold leading-tight text-gray-900">Groups</h1>
+              <path
+                fillRule="evenodd"
+                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Groups</h1>
+            <p className="mt-2 text-purple-200">
+              Manage student groups in this department
+            </p>
           </div>
         </div>
-      </header>
-      <main>
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-          <div className="px-4 py-8 sm:px-0">
-            <div className="sm:flex sm:items-center">
-              <div className="sm:flex-auto">
-                <p className="mt-2 text-sm text-gray-700">
-                  A list of all groups in this department.
-                </p>
-              </div>
-              <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-                <button
-                  type="button"
+      </div>
+
+      {/* Content */}
+      <div className="bg-gradient-to-br from-gray-900/80 to-slate-800/80 backdrop-blur-md rounded-xl shadow-xl border border-gray-700/50 overflow-hidden relative">
+        <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-purple-500/10 blur-2xl"></div>
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl"></div>
+        
+        {/* Header Actions */}
+        <div className="px-6 py-5 border-b border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+          <div>
+            <p className="text-gray-300 text-sm">
+              A list of all groups in this department.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingGroup(null);
+              reset({ name: '', section: '', batch: '' });
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center rounded-lg border border-transparent bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors"
+          >
+            <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Group
+          </button>
+        </div>
+
+        {/* Groups Table */}
+        <div className="relative z-10">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead className="bg-gray-800/50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="py-3.5 pl-6 pr-3 text-left text-sm font-medium text-gray-200"
+                  >
+                    Name
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3.5 text-left text-sm font-medium text-gray-200"
+                  >
+                    Section
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3.5 text-left text-sm font-medium text-gray-200"
+                  >
+                    Batch
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3.5 text-left text-sm font-medium text-gray-200"
+                  >
+                    Approvers
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3.5 text-left text-sm font-medium text-gray-200"
+                  >
+                    Students
+                  </th>
+                  <th
+                    scope="col"
+                    className="relative py-3.5 pl-3 pr-6"
+                  >
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {groups.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="py-8 text-center text-sm text-gray-300"
+                    >
+                      <div className="flex flex-col items-center justify-center">
+                        <svg className="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                        <p>No groups found</p>
+                        <p className="text-gray-400 text-xs mt-2">Create a new group to get started</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  groups.map((group) => (
+                    <tr key={group.id} className="hover:bg-gray-800/30 transition-colors">
+                      <td className="whitespace-nowrap py-4 pl-6 pr-3 text-sm font-medium text-white">
+                        {group.name}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-900/60 text-indigo-200 border border-indigo-700">
+                          {group.section}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-900/60 text-purple-200 border border-purple-700">
+                          {group.batch}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
+                        <Link
+                          to={`/departments/${departmentId}/groups/${group.id}/approvers`}
+                          className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
+                        <Link
+                          to={`/departments/${departmentId}/groups/${group.id}/students`}
+                          className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View
+                        </Link>
+                      </td>
+                      <td className="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-3">
+                          <button
+                            onClick={() => handleEdit(group)}
+                            className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                          >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(group.id)}
+                            className="text-rose-400 hover:text-rose-300 transition-colors"
+                          >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-900/90 to-slate-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-gray-700/50 p-6 max-w-md w-full relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-purple-500/10 blur-2xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-semibold text-white">
+                  {editingGroup ? 'Edit Group' : 'Add Group'}
+                </h2>
+                <button 
                   onClick={() => {
+                    setIsModalOpen(false);
                     setEditingGroup(null);
-                    reset({ name: '', section: '', batch: '' });
-                    setIsModalOpen(true);
+                    reset();
                   }}
-                  className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+                  className="text-gray-400 hover:text-white transition-colors"
                 >
-                  Add Group
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            </div>
-
-            {/* Groups Table */}
-            <div className="mt-8 flex flex-col">
-              <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th
-                            scope="col"
-                            className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-                          >
-                            Name
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                          >
-                            Section
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                          >
-                            Batch
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                          >
-                            Approvers
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                          >
-                            Students
-                          </th>
-                          <th
-                            scope="col"
-                            className="relative py-3.5 pl-3 pr-4 sm:pr-6"
-                          >
-                            <span className="sr-only">Actions</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 bg-white">
-                        {groups.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={6}
-                              className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 text-center"
-                            >
-                              No groups found
-                            </td>
-                          </tr>
-                        ) : (
-                          groups.map((group) => (
-                            <tr key={group.id}>
-                              <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                                {group.name}
-                              </td>
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                {group.section}
-                              </td>
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                {group.batch}
-                              </td>
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                <Link
-                                  to={`/departments/${departmentId}/groups/${group.id}/approvers`}
-                                  className="text-blue-600 hover:text-blue-900"
-                                >
-                                  View
-                                </Link>
-                              </td>
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                <Link
-                                  to={`/departments/${departmentId}/groups/${group.id}/students`}
-                                  className="text-blue-600 hover:text-blue-900"
-                                >
-                                  View
-                                </Link>
-                              </td>
-                              <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                <button
-                                  onClick={() => handleEdit(group)}
-                                  className="text-blue-600 hover:text-blue-900 mr-4"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(group.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  Delete
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+              
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-200 mb-1"
+                  >
+                    Name
+                  </label>
+                  <div className="relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      {...register('name')}
+                      placeholder="Enter group name"
+                      className={`pl-10 w-full px-4 py-3 rounded-lg border bg-gray-800/80 text-white ${
+                        errors.name 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                          : 'border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                      } shadow-sm focus:outline-none focus:ring-2 transition-colors`}
+                    />
                   </div>
+                  {errors.name && (
+                    <p className="mt-2 text-sm text-red-400 flex items-center">
+                      <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      {errors.name.message}
+                    </p>
+                  )}
                 </div>
-              </div>
+
+                <div>
+                  <label
+                    htmlFor="section"
+                    className="block text-sm font-medium text-gray-200 mb-1"
+                  >
+                    Section
+                  </label>
+                  <div className="relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h7" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      {...register('section')}
+                      placeholder="Enter section (e.g., A, B, C)"
+                      className={`pl-10 w-full px-4 py-3 rounded-lg border bg-gray-800/80 text-white ${
+                        errors.section 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                          : 'border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                      } shadow-sm focus:outline-none focus:ring-2 transition-colors`}
+                    />
+                  </div>
+                  {errors.section && (
+                    <p className="mt-2 text-sm text-red-400 flex items-center">
+                      <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      {errors.section.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="batch"
+                    className="block text-sm font-medium text-gray-200 mb-1"
+                  >
+                    Batch
+                  </label>
+                  <div className="relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      {...register('batch')}
+                      placeholder="Enter batch year (e.g., 2024)"
+                      className={`pl-10 w-full px-4 py-3 rounded-lg border bg-gray-800/80 text-white ${
+                        errors.batch 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                          : 'border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                      } shadow-sm focus:outline-none focus:ring-2 transition-colors`}
+                    />
+                  </div>
+                  {errors.batch && (
+                    <p className="mt-2 text-sm text-red-400 flex items-center">
+                      <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      {errors.batch.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingGroup(null);
+                      reset();
+                    }}
+                    className="inline-flex items-center justify-center rounded-lg border border-gray-600 bg-transparent px-4 py-2.5 text-sm font-medium text-gray-300 shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                    className="inline-flex items-center justify-center rounded-lg border border-transparent bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors"
+                  >
+                    {createMutation.isPending || updateMutation.isPending ? (
+                      <div className="flex items-center">
+                        <Spinner size="sm" className="mr-2" />
+                        <span>Processing...</span>
+                      </div>
+                    ) : editingGroup ? (
+                      <div className="flex items-center">
+                        <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Update Group
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Create Group
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            {/* Modal */}
-            {isModalOpen && (
-              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
-                <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                  <h2 className="text-lg font-medium mb-4">
-                    {editingGroup ? 'Edit Group' : 'Add Group'}
-                  </h2>
-                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div>
-                      <label
-                        htmlFor="name"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        {...register('name')}
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                          errors.name ? 'border-red-300' : ''
-                        }`}
-                      />
-                      {errors.name && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.name.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="section"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Section
-                      </label>
-                      <input
-                        type="text"
-                        {...register('section')}
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                          errors.section ? 'border-red-300' : ''
-                        }`}
-                      />
-                      {errors.section && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.section.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="batch"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Batch
-                      </label>
-                      <input
-                        type="text"
-                        {...register('batch')}
-                        placeholder="e.g., 2024"
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                          errors.batch ? 'border-red-300' : ''
-                        }`}
-                      />
-                      {errors.batch && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.batch.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex justify-end space-x-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsModalOpen(false);
-                          setEditingGroup(null);
-                          reset();
-                        }}
-                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={createMutation.isPending || updateMutation.isPending}
-                        className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        {createMutation.isPending || updateMutation.isPending ? (
-                          <Spinner size="sm" />
-                        ) : editingGroup ? (
-                          'Update'
-                        ) : (
-                          'Create'
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-      </main>
-    </>
+      )}
+    </div>
   );
 } 
