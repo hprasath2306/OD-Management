@@ -15,7 +15,7 @@ router.get("/approver", authMiddleware, authorize([UserRole.TEACHER]), requestCo
 // Get student's requests (Students only)
 router.get("/student", authMiddleware, authorize([UserRole.STUDENT]), requestController.getStudentRequests);
 router.get("/", authMiddleware, authorize([UserRole.ADMIN]), requestController.getAllRequests);
-router.get("/group", authMiddleware, authorize([UserRole.TEACHER]), requestController.getAllRequests);
+router.get("/group", authMiddleware, authorize([UserRole.TEACHER]), requestController.getGroupRequests);
 // Get all requests (Authenticated users)
 // Can filter by studentId, groupId, and status using query params
 export default router;

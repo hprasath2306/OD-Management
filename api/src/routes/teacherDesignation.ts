@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { teacherDesignationController } from "../controllers/teacherDesignation";
-import { validateResource } from "../middleware/validate";
-import { createTeacherDesignationSchema, updateTeacherDesignationSchema } from "../types/teacherDesignation";
-import { authMiddleware } from "../middleware/auth";
-import { authorize } from "../middleware/authorize";
+import { teacherDesignationController } from "../controllers/teacherDesignation.js";
+import { validateResource } from "../middleware/validate.js";
+import { createTeacherDesignationSchema, updateTeacherDesignationSchema } from "../types/teacherDesignation.js";
+import { authMiddleware } from "../middleware/auth.js";
+import { authorize } from "../middleware/authorize.js";
 import { UserRole } from "@prisma/client";
 
 

@@ -13,12 +13,10 @@ import flowTemplateRoutes from "./routes/flowTemplate.js";
 import flowStepRoutes from "./routes/flowStep.js";
 import requestRoutes from "./routes/request.js";
 const app = express();
-app.use(
-    cors({
-        origin: ["https://psna-acadify.vercel.app", "http://localhost:5173"],
-        credentials: true,
-    })
-);
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+}));
 app.use(urlencoded({ extended: false }));
 app.use(express.json());
 const port = 3000;

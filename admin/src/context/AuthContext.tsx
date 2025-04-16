@@ -23,10 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const user = await authApi.getCurrentUser();
-        setUser(user);
+        const token = localStorage.getItem('token');
+        if (token) {
+          const user = await authApi.getCurrentUser();
+          setUser(user);
+        } else {
+          setUser(null);
+        }
       } catch (error) {
         setUser(null);
+        localStorage.removeItem('token');
       } finally {
         setIsLoading(false);
       }
@@ -55,21 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      // First, create the user account
-      await authApi.signup({ email, password });
-      
-      // Then, fetch the user data
-      const userData = await authApi.getCurrentUser();
-      
-      if (userData) {
-        setUser(userData);
-        toast.success('Account created successfully');
-        navigate('/');
-      } else {
-        // If we couldn't get the user data, show an error
-        toast.error('Account created but failed to fetch user data');
-        navigate('/login');
-      }
+      const { user } = await authApi.signup({ email, password });
+      setUser(user);
+      toast.success('Account created successfully');
+      navigate('/');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to create account');
       throw error;

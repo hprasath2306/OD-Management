@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { labController } from "../controllers/lab";
+import { labController } from "../controllers/lab.js";
 
-import { createLabSchema, updateLabSchema } from "../types/lab";
-import { authorize } from "../middleware/authorize";
+import { createLabSchema, updateLabSchema } from "../types/lab.js";
+import { authorize } from "../middleware/authorize.js";
 import { UserRole } from "@prisma/client";
-import { authMiddleware } from "../middleware/auth";
-import { validateResource } from "../middleware/validate";
+import { authMiddleware } from "../middleware/auth.js";
+import { validateResource } from "../middleware/validate.js";
 
 const router = Router();
 

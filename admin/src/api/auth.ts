@@ -3,7 +3,15 @@ import axios from 'axios';
 // Create an axios instance with the base URL
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  withCredentials: true, // Important for cookies
+});
+
+// Add token to requests if it exists
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Types
@@ -33,12 +41,12 @@ export interface Student {
 
 export interface AuthResponse {
   user: User;
-  session: string;
+  token: string;
 }
 
 export interface SignupResponse {
-  user: string; // Just the user ID
-  session: string;
+  user: User;
+  token: string;
 }
 
 export interface ForgotPasswordResponse {
@@ -51,7 +59,6 @@ export interface VerifyOTPResponse {
 
 export interface ResetPasswordResponse {
   message: string;
-  user: User;
 }
 
 // Authentication API functions
@@ -59,13 +66,17 @@ export const authApi = {
   // Login user
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await api.post('/auth/login', credentials);
-    return response.data;
+    const { token, user } = response.data;
+    localStorage.setItem('token', token);
+    return { token, user };
   },
 
   // Register user
   signup: async (credentials: SignupCredentials): Promise<SignupResponse> => {
     const response = await api.post('/auth/signup', credentials);
-    return response.data;
+    const { token, user } = response.data;
+    localStorage.setItem('token', token);
+    return { token, user };
   },
 
   // Get current user
@@ -80,6 +91,7 @@ export const authApi = {
 
   // Logout user
   logout: async (): Promise<void> => {
+    localStorage.removeItem('token');
     await api.post('/auth/logout');
   },
 
@@ -107,7 +119,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized errors (e.g., redirect to login)
+      // Clear token and redirect to login
+      localStorage.removeItem('token');
       window.location.href = '/login';
     }
     return Promise.reject(error);

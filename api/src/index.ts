@@ -7,16 +7,16 @@ import cors from "cors";
 import groupRoutes from "./routes/group.js";
 import groupApproverRoutes from "./routes/groupApprover.js";
 import studentRoutes from "./routes/student.js";
-import teacherDesignationRoutes from "./routes/teacherDesignation";
-import labRoutes from "./routes/lab";
-import flowTemplateRoutes from "./routes/flowTemplate";
-import flowStepRoutes from "./routes/flowStep";
-import requestRoutes from "./routes/request";
+import teacherDesignationRoutes from "./routes/teacherDesignation.js";
+import labRoutes from "./routes/lab.js";
+import flowTemplateRoutes from "./routes/flowTemplate.js";
+import flowStepRoutes from "./routes/flowStep.js";
+import requestRoutes from "./routes/request.js";
 
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5174",
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );

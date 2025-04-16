@@ -1,15 +1,14 @@
 import { Router } from "express";
 import randomstring from "randomstring";
-import { getUser } from "../../utils/getUser";
+import { getUser } from "../../utils/getUser.js";
 import { Argon2id } from "oslo/password";
-import prisma from "../../db/config";
-import { sendEmail } from "../../utils/sendEmail";
+import prisma from "../../db/config.js";
+import { sendEmail } from "../../utils/sendEmail.js";
 import { randomBytes } from "crypto";
-import { lucia } from "../../utils/lucia";
-import { authMiddleware, currentUser } from "../../middleware/auth";
-import { createUser } from "../../utils/createUser";
-import { UserRole } from ".prisma/client";
-
+import { authMiddleware, currentUser } from "../../middleware/auth.js";
+import { createUser } from "../../utils/createUser.js";
+import { UserRole } from "@prisma/client";
+import { generateToken } from "../../utils/jwt.js";
 
 const router = Router();
 
@@ -25,12 +24,14 @@ router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
-            return res.status(400).json({ message: "Invalid email or password" });
+            res.status(400).json({ message: "Invalid email or password" });
+            return;
         }
         const user = await getUser(email);
 
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            res.status(404).json({ message: "User not found" });
+            return;
         }
         const isValidPassword = await new Argon2id().verify(
             user.password!,
@@ -44,7 +45,6 @@ router.post("/login", async (req, res) => {
                         email: user.email || user.email!,
                     },
                 });
-
 
                 const otp = generateOTP();
                 if (optVerification) {
@@ -67,26 +67,26 @@ router.post("/login", async (req, res) => {
                     subject: "Email Verification",
                     message: `Your OTP is ${otp} to verify your email. will expire 5 mins`,
                 });
-                return res
-                    .status(403)
-                    .json({ message: "Email not verified, mail has been sent" });
+                res.status(403).json({ message: "Email not verified, mail has been sent" });
+                return;
             }
-            const sessionId = randomBytes(12).toString("hex");
-            const session = await lucia.createSession(user.id, {}, { sessionId });
-            const sessionCookie = lucia.createSessionCookie(session.id);
-            res.appendHeader("Set-Cookie", sessionCookie.serialize());
+            
+            const token = generateToken(user);
             const sessionUser = {
                 id: user.id,
                 email: user.email || user.email,
                 role: user.role
             }
-            return res.status(201).json({ session: session, user: sessionUser });
+            res.status(200).json({ token, user: sessionUser });
+            return;
         } else {
-            return res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({ message: "Invalid email or password" });
+            return;
         }
     } catch (error: any) {
         console.log(error.message);
-        return error(500, "Internal server error");
+        res.status(500).json({ message: "Internal server error" });
+        return;
     }
 });
 
@@ -124,13 +124,8 @@ router.post("/verifyEmail", async (req, res) => {
             emailVerified: true,
             },
         });
-        const sessionId = randomBytes(12).toString("hex");
-        const session = await lucia.createSession(user.id, {}, { sessionId });
-        const sessionCookie = lucia.createSessionCookie(session.id)
-        res.appendHeader("Set-Cookie", sessionCookie.serialize());
-        res
-            .status(201)
-            .json({ session: session, user: user, message: "Email verified" });
+        const token = generateToken(user);
+        res.status(201).json({ token, user, message: "Email verified" });
         return;
     } catch (error: any) {
         console.log(error.message);
@@ -157,10 +152,10 @@ router.post("/forgotPassword", async (req, res) => {
         const expires = new Date(Date.now() + 1000 * 60 * 5);
 
         const optVerification = await prisma.oTP.upsert({
-            where: { email }, // Use email as a unique identifier for simplicity
+            where: { email },
             update: {
                 otp,
-              expiresAt: expires,
+                expiresAt: expires,
                 verifiedAt: null,
             },
             create: {
@@ -212,11 +207,12 @@ router.post("/verifyForgotPassword", async (req, res) => {
                 verifiedAt: new Date(),
             },
         });
-        if (optVerification.expiresAt< new Date()) {
+        if (optVerification.expiresAt < new Date()) {
             res.status(401).json({ message: "OTP expired" });
             return;
         }
         res.status(200).json({ message: "OTP verified" });
+        return;
     } catch (error: any) {
         console.log(error.message);
         res.status(500).json({ message: "Internal server error" });
@@ -325,24 +321,15 @@ router.post("/signup", async (req, res) => {
         }
         const hashedPassword = await new Argon2id().hash(password);
 
-        const user =await createUser(email, hashedPassword, UserRole.ADMIN);
+        const user = await createUser(email, hashedPassword, UserRole.ADMIN);
 
         if (!user) {
             res.status(401).json({ message: "Unauthorized" });
             return;
         }
-        const sessionId = randomBytes(12).toString("hex");
-        const session = await lucia.createSession(
-            user.id,
-            {},
-            {
-                sessionId,
-            }
-        );
-        const sessionCookie = lucia.createSessionCookie(session.id);
-        res.appendHeader("Set-Cookie", sessionCookie.serialize());
-        res.status(200);
-        res.json({ session: session.id, user: user.id });
+
+        const token = generateToken(user);
+        res.status(200).json({ token, user: { id: user.id, email: user.email, role: user.role } });
         return;
     } catch (error: any) {
         console.log(error.message);
@@ -353,16 +340,8 @@ router.post("/signup", async (req, res) => {
 
 router.post("/logout", authMiddleware, async (req, res) => {
     try {
-        if (!res.locals.session) {
-            res.status(401).json({ message: "Unauthenticated" });
-            return;
-        }
-        await lucia.invalidateSession(res.locals.session.id);
-        res.appendHeader(
-            "Set-Cookie",
-            lucia.createBlankSessionCookie().serialize()
-        );
-        res.status(200).json({ message: "Logged out" });
+        res.status(200).json({ message: "Logged out successfully" });
+        return;
     } catch (err: any) {
         console.log(err.message);
         res.status(500).json({ message: "Internal server error" });
@@ -374,8 +353,10 @@ router.get("/profile", authMiddleware, async (req, res) => {
     try {
         if (!res.locals.user) {
             res.status(401).json({ message: "Unauthenticated" });
+            return;
         }
         res.json({ user: res.locals.user });
+        return;
     } catch (error: any) {
         console.log(error.message);
         res.status(500).json({ message: "Internal server error" });
@@ -393,6 +374,5 @@ router.get("/currentUser", async (req, res) => {
         return;
     }
 });
-
 
 export default router;
