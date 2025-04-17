@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../context/AuthContext';
+import { Spinner } from '../../components/ui/Spinner';
 
 // Form validation schema
 const loginSchema = z.object({
@@ -13,7 +14,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function Login() {
-  const { login } = useAuth();
+  const { login, isAuthenticating } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -25,18 +26,34 @@ export function Login() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (isSubmitting || isAuthenticating) return; // Prevent multiple submissions
+    
     try {
       setIsSubmitting(true);
       await login(data.email, data.password);
+      // Success is handled by AuthContext
     } catch (error) {
       console.error('Login failed:', error);
+      // Error already handled by AuthContext
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Full-page loader component
+  const FullPageLoader = () => (
+    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+      <Spinner size="lg" className="mb-4" />
+      <h3 className="text-xl font-medium text-white">Signing in...</h3>
+      <p className="text-gray-400 mt-2">Please wait while we verify your credentials</p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Show loader overlay when authenticating */}
+      {isAuthenticating && <FullPageLoader />}
+      
       {/* Left Section - Branding & Info */}
       <div className="w-full md:w-1/2 flex flex-col justify-center p-8 md:p-16 bg-gradient-to-br from-violet-600 via-indigo-700 to-purple-800 text-white rounded-none md:rounded-r-3xl shadow-2xl relative overflow-hidden">
         {/* Glassmorphism overlay */}
@@ -105,7 +122,13 @@ export function Login() {
               <p className="text-gray-300 mt-2">Sign in to access your dashboard</p>
             </div>
             
-            <form className="space-y-6 relative z-10" onSubmit={handleSubmit(onSubmit)}>
+            <form
+              className="space-y-6 relative z-10"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit(onSubmit)(e);
+              }}
+            >
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
                   Email Address
@@ -120,7 +143,7 @@ export function Login() {
                     id="email"
                     type="email"
                     autoComplete="email"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isAuthenticating}
                     {...register('email')}
                     className={`pl-10 w-full px-4 py-3 border ${
                       errors.email ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-600 focus:ring-purple-500 focus:border-purple-500'
@@ -147,7 +170,7 @@ export function Login() {
                     id="password"
                     type="password"
                     autoComplete="current-password"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isAuthenticating}
                     {...register('password')}
                     className={`pl-10 w-full px-4 py-3 border ${
                       errors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-600 focus:ring-purple-500 focus:border-purple-500'
@@ -166,7 +189,7 @@ export function Login() {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isAuthenticating}
                     className="h-4 w-4 text-purple-600 focus:ring-purple-500 bg-gray-700 border-gray-600 rounded disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
@@ -187,10 +210,10 @@ export function Login() {
               <div>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isAuthenticating}
                   className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors relative overflow-hidden"
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || isAuthenticating ? (
                     <>
                       <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                       <div className="flex items-center justify-center">

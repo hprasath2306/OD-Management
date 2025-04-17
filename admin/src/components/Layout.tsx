@@ -10,7 +10,6 @@ const adminNavigation = [
 ];
 
 const teacherNavigation = [
-  { name: 'Dashboard', href: '/' },
   { name: 'OD Requests', href: '/od-approvals' },
   { name: 'Results', href: '/results' },
 ];

@@ -34,7 +34,12 @@ function DashboardRoute() {
     return <Navigate to="/od-requests" replace />;
   }
   
-  // For other roles, show the dashboard
+  // If user is a teacher, redirect to od-approvals page
+  if (user?.role === 'TEACHER') {
+    return <Navigate to="/od-approvals" replace />;
+  }
+  
+  // Only admins should see the dashboard
   return <Dashboard />;
 }
 
