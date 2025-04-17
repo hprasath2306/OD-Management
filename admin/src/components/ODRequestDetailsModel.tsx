@@ -9,6 +9,28 @@ import {
   DocumentTextIcon,
   BuildingLibraryIcon,
 } from "@heroicons/react/24/solid";
+import React from 'react';
+
+// Add CSS for custom scrollbar
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(31, 41, 55, 0.5);
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.5);
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.8);
+  }
+`;
 
 function ODRequestDetailsModel({
   selectedRequest,
@@ -59,21 +81,21 @@ function ODRequestDetailsModel({
     switch (status) {
       case "APPROVED":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/60 text-green-200 border border-green-700">
             <CheckCircleIcon className="mr-1 h-4 w-4" />
             Approved
           </span>
         );
       case "REJECTED":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/60 text-red-200 border border-red-700">
             <XCircleIcon className="mr-1 h-4 w-4" />
             Rejected
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-900/60 text-yellow-200 border border-yellow-700">
             <ClockIcon className="mr-1 h-4 w-4" />
             Pending
           </span>
@@ -115,22 +137,38 @@ function ODRequestDetailsModel({
 
   const overallStatus = getOverallStatus();
 
+  const scrollContainerStyle = {
+    overflowY: 'auto',
+    maxHeight: 'calc(100vh - 170px)',
+    paddingRight: '16px',
+    paddingLeft: '16px',
+    paddingTop: '20px',
+    paddingBottom: '20px',
+    flex: '1',
+    borderRadius: '0px'
+  };
+
+  React.useEffect(() => {
+    // Add the scrollbar styles to the document head
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = scrollbarStyles;
+    document.head.appendChild(styleElement);
+    
+    // Clean up on component unmount
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
   return (
-    <div className="fixed z-10 inset-0 overflow-y-auto">
-      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          aria-hidden="true"
-        ></div>
-        <span
-          className="hidden sm:inline-block sm:align-middle sm:h-screen"
-          aria-hidden="true"
-        >
-          &#8203;
-        </span>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-gradient-to-br from-gray-900/90 to-slate-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-gray-700/50 p-0 max-w-3xl w-full relative overflow-hidden flex flex-col h-[80vh]">
+        <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-purple-500/10 blur-2xl"></div>
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl"></div>
+        
+        <div className="relative z-10 flex flex-col h-full">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
+          <div className="bg-gradient-to-r from-slate-800 to-gray-900 px-6 py-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-bold text-white">
                 OD Request Details
@@ -139,22 +177,22 @@ function ODRequestDetailsModel({
             </div>
           </div>
 
-          <div className="bg-white px-6 py-5">
+          <div className="px-6 py-5 flex-grow overflow-auto">
             {/* Request Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-gray-50 rounded-lg p-4 shadow-sm">
-                <h4 className="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">
+              <div className="bg-slate-800/80 rounded-lg p-4 shadow-sm border border-gray-700/50">
+                <h4 className="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">
                   Request Information
                 </h4>
 
                 <div className="space-y-3">
                   <div className="flex items-start">
-                    <DocumentTextIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                    <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-300">
                         Category
                       </p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {selectedRequest.category
                           ? getCategoryDisplayName(selectedRequest.category)
                           : "N/A"}
@@ -163,12 +201,12 @@ function ODRequestDetailsModel({
                   </div>
 
                   <div className="flex items-start">
-                    <DocumentTextIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                    <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-300">
                         Reason
                       </p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {selectedRequest.reason}
                       </p>
                     </div>
@@ -176,12 +214,12 @@ function ODRequestDetailsModel({
 
                   {selectedRequest.description && (
                     <div className="flex items-start">
-                      <DocumentTextIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                      <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="text-sm font-medium text-gray-300">
                           Description
                         </p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-sm text-white">
                           {selectedRequest.description}
                         </p>
                       </div>
@@ -189,12 +227,12 @@ function ODRequestDetailsModel({
                   )}
 
                   <div className="flex items-start">
-                    <CalendarIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                    <CalendarIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-300">
                         Duration
                       </p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {formatDate(selectedRequest.startDate)}
                         {selectedRequest.startDate !==
                           selectedRequest.endDate &&
@@ -205,12 +243,12 @@ function ODRequestDetailsModel({
 
                   {selectedRequest.needsLab && selectedRequest.lab && (
                     <div className="flex items-start">
-                      <BeakerIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                      <BeakerIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="text-sm font-medium text-gray-300">
                           Lab Required
                         </p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-sm text-white">
                           {selectedRequest.lab.name}
                         </p>
                       </div>
@@ -219,19 +257,19 @@ function ODRequestDetailsModel({
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 shadow-sm">
-                <h4 className="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">
+              <div className="bg-slate-800/80 rounded-lg p-4 shadow-sm border border-gray-700/50">
+                <h4 className="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">
                   People Information
                 </h4>
 
                 <div className="space-y-3">
                   <div className="flex items-start">
-                    <UserGroupIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                    <UserGroupIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-300">
                         Requested By
                       </p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {selectedRequest.requestedBy.name} (
                         {selectedRequest.requestedBy.email})
                       </p>
@@ -239,12 +277,12 @@ function ODRequestDetailsModel({
                   </div>
 
                   <div className="flex items-start">
-                    <UserGroupIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                    <UserGroupIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-300">
                         Students
                       </p>
-                      <ul className="text-sm text-gray-900 list-disc list-inside">
+                      <ul className="text-sm text-white list-disc list-inside">
                         {selectedRequest.students.map((student) => (
                           <li key={student.id}>
                             {student.name} (Roll No: {student.rollNo}) -{" "}
@@ -256,12 +294,12 @@ function ODRequestDetailsModel({
                   </div>
 
                   <div className="flex items-start">
-                    <BuildingLibraryIcon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                    <BuildingLibraryIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-300">
                         Flow Template
                       </p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {selectedRequest.flowTemplate?.name || "N/A"}
                       </p>
                     </div>
@@ -272,7 +310,7 @@ function ODRequestDetailsModel({
 
             {/* Approval Workflow */}
             <div className="mt-6">
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">
+              <h4 className="text-lg font-semibold text-white mb-4">
                 Approval Workflow
               </h4>
 
@@ -287,10 +325,10 @@ function ODRequestDetailsModel({
                   return (
                     <div
                       key={index}
-                      className="mb-6 bg-gray-50 rounded-lg p-4 shadow-sm"
+                      className="mb-6 bg-slate-800/80 rounded-lg p-4 shadow-sm border border-gray-700/50"
                     >
                       <div className="flex justify-between items-center mb-3">
-                        <h5 className="text-md font-semibold text-gray-700">
+                        <h5 className="text-md font-semibold text-white">
                           Class: {approval.groupName}
                         </h5>
                         <StatusBadge status={approval.status} />
@@ -298,11 +336,11 @@ function ODRequestDetailsModel({
 
                       {/* Students in this group */}
                       {groupStudents.length > 0 && (
-                        <div className="mb-3 bg-white rounded p-3">
-                          <p className="text-sm font-medium text-gray-700 mb-1">
+                        <div className="mb-3 bg-gray-900/50 rounded p-3 border border-gray-700/50">
+                          <p className="text-sm font-medium text-gray-300 mb-1">
                             Students in this group:
                           </p>
-                          <ul className="text-sm text-gray-900 list-disc list-inside">
+                          <ul className="text-sm text-white list-disc list-inside">
                             {groupStudents.map(student => (
                               <li key={student.id}>
                                 {student.name} (Roll No: {student.rollNo})
@@ -311,26 +349,6 @@ function ODRequestDetailsModel({
                           </ul>
                         </div>
                       )}
-
-                      {/* Progress bar */}
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                        <div 
-                          className={`h-2.5 rounded-full ${
-                            approval.status === 'APPROVED' 
-                              ? 'bg-green-600' 
-                              : approval.status === 'REJECTED' 
-                                ? 'bg-red-600' 
-                                : 'bg-blue-600'
-                          }`}
-                          style={{ 
-                            width: `${approval.status === 'APPROVED' 
-                              ? '100%' 
-                              : approval.status === 'REJECTED' 
-                                ? '100%' 
-                                : `${Math.min(100, ((approval.currentStepIndex + 1) / (selectedRequest.flowTemplate?.steps.length || 1)) * 100)}%`}` 
-                          }}
-                        ></div>
-                      </div>
 
                       {/* Timeline */}
                       <div className="flow-root">
@@ -351,19 +369,19 @@ function ODRequestDetailsModel({
                                 <div className="relative pb-8">
                                   {!isLastStep && (
                                     <span
-                                      className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
+                                      className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-700"
                                       aria-hidden="true"
                                     ></span>
                                   )}
                                   <div className="relative flex space-x-3">
                                     <div>
                                       <span
-                                        className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
+                                        className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-gray-900 ${
                                           step.status === "APPROVED"
-                                            ? "bg-green-500"
+                                            ? "bg-green-600"
                                             : step.status === "REJECTED"
-                                            ? "bg-red-500"
-                                            : "bg-gray-400"
+                                            ? "bg-red-600"
+                                            : "bg-gray-600"
                                         }`}
                                       >
                                         {step.status === "APPROVED" ? (
@@ -377,23 +395,23 @@ function ODRequestDetailsModel({
                                     </div>
                                     <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                                       <div>
-                                        <p className="text-sm text-gray-800 font-medium">
+                                        <p className="text-sm text-white font-medium">
                                           {getRoleDisplayName(role)}
                                         </p>
                                         {step.approvedAt && (
-                                          <p className="text-xs text-gray-500">
+                                          <p className="text-xs text-gray-400">
                                             {new Date(
                                               step.approvedAt
                                             ).toLocaleString()}
                                           </p>
                                         )}
                                         {step.comments && (
-                                          <p className="text-xs text-gray-600 mt-1 italic">
+                                          <p className="text-xs text-gray-300 mt-1 italic">
                                             "{step.comments}"
                                           </p>
                                         )}
                                       </div>
-                                      <div className="text-right text-sm whitespace-nowrap text-gray-500">
+                                      <div className="text-right text-sm whitespace-nowrap">
                                         <StatusBadge status={step.status} />
                                       </div>
                                     </div>
@@ -408,8 +426,8 @@ function ODRequestDetailsModel({
                   );
                 })
               ) : (
-                <div className="text-center py-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500">
+                <div className="text-center py-4 bg-slate-800/80 rounded-lg border border-gray-700/50">
+                  <p className="text-sm text-gray-300">
                     No approval information available.
                   </p>
                 </div>
@@ -418,10 +436,10 @@ function ODRequestDetailsModel({
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-6 py-3 flex justify-end">
+          <div className="bg-slate-800/50 px-6 py-3 flex justify-end border-t border-gray-700 flex-shrink-0">
             <button
               type="button"
-              className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
+              className="inline-flex items-center justify-center rounded-lg border border-gray-600 bg-transparent px-4 py-2 text-sm font-medium text-gray-300 shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors"
               onClick={handleCloseDetailsModal}
             >
               Close
@@ -429,6 +447,34 @@ function ODRequestDetailsModel({
           </div>
         </div>
       </div>
+
+      <style>{`
+        /* Firefox scrollbar styling */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #4B5563 #1F2937;
+        }
+        
+        /* Chrome, Edge, and Safari scrollbar styling */
+        *::-webkit-scrollbar {
+          width: 14px;
+        }
+        
+        *::-webkit-scrollbar-track {
+          background: #1F2937;
+          border-radius: 10px;
+        }
+        
+        *::-webkit-scrollbar-thumb {
+          background-color: #4B5563;
+          border-radius: 10px;
+          border: 3px solid #1F2937;
+        }
+        
+        *::-webkit-scrollbar-thumb:hover {
+          background-color: #6B7280;
+        }
+      `}</style>
     </div>
   );
 }

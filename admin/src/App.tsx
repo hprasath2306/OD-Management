@@ -20,9 +20,23 @@ import { ODRequests } from './pages/ODRequests';
 import { ODApprovals } from './pages/ODApprovals';
 import { Labs } from './pages/Labs';
 import RequestTable from './pages/RequestTable';
+import { useAuth } from './context/AuthContext';
 
 // Create a client
 const queryClient = new QueryClient();
+
+// Redirect component for the dashboard that checks user role
+function DashboardRoute() {
+  const { user } = useAuth();
+  
+  // If user is a student, redirect to od-requests page
+  if (user?.role === 'STUDENT') {
+    return <Navigate to="/od-requests" replace />;
+  }
+  
+  // For other roles, show the dashboard
+  return <Dashboard />;
+}
 
 function App() {
   return (
@@ -40,7 +54,7 @@ function App() {
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute />}>
               <Route element={<Layout />}>
-                <Route index element={<Dashboard />} />
+                <Route index element={<DashboardRoute />} />
                 <Route path="/departments" element={<Departments />} />
                 <Route path="/departments/:departmentId/teachers" element={<DepartmentTeachers />} />
                 <Route path="/departments/:departmentId/teachers/:teacherId/designations" element={<TeacherDesignations />} />

@@ -10,14 +10,13 @@ const adminNavigation = [
 ];
 
 const teacherNavigation = [
-  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'Dashboard', href: '/' },
   { name: 'OD Requests', href: '/od-approvals' },
   { name: 'Results', href: '/results' },
 ];
 
 const studentNavigation = [
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'OD Request', href: '/od-requests' },
+  { name: 'OD Requests', href: '/od-requests' },
 ];
 
 export function Layout() {
