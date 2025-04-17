@@ -137,17 +137,6 @@ function ODRequestDetailsModel({
 
   const overallStatus = getOverallStatus();
 
-  const scrollContainerStyle = {
-    overflowY: 'auto',
-    maxHeight: 'calc(100vh - 170px)',
-    paddingRight: '16px',
-    paddingLeft: '16px',
-    paddingTop: '20px',
-    paddingBottom: '20px',
-    flex: '1',
-    borderRadius: '0px'
-  };
-
   React.useEffect(() => {
     // Add the scrollbar styles to the document head
     const styleElement = document.createElement('style');
