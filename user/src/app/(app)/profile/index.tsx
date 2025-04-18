@@ -117,11 +117,11 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          {/* <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="notifications-outline" size={22} color="#6200ee" />
             <Text style={styles.actionText}>Notifications</Text>
             <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity
             style={[styles.actionButton, styles.logoutButton]}

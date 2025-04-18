@@ -51,12 +51,26 @@ export const verifyForgotPassword = async (email: string, otp: string) => {
   }
 };
 
-export const resetPassword = async (email: string, password: string, token: string) => {
+export const resetPassword = async (email: string, otp: string, password: string) => {
   try {
-    const response = await api.post('/auth/resetPassword', { email, password, token });
+    const response = await api.post('/auth/resetPassword', { email, otp, password });
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Failed to reset password');
+  }
+};
+
+export const verifyEmail = async (email: string, otp: string) => {
+  try {
+    const response = await api.post('/auth/verifyEmail', { email, otp });
+    if (response.data?.token) {
+      await AsyncStorage.setItem('token', response.data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  } catch (error: any) {
+    // console.log(error)
+    throw new Error(error.response?.data?.message || 'Failed to verify email');
   }
 };
 

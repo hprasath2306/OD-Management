@@ -40,27 +40,42 @@ router.post("/login", async (req, res) => {
         if (isValidPassword) {
             if (!user.emailVerified) {
                 // send email verification mail
-                let optVerification = await prisma.oTP.findFirst({
-                    where: {
-                        email: user.email || user.email!,
-                    },
-                });
+                // let optVerification = await prisma.oTP.findFirst({
+                //     where: {
+                //         email: user.email || user.email!,
+                //     },
+                // });
 
                 const otp = generateOTP();
-                if (optVerification) {
-                    optVerification = await prisma.oTP.upsert({
-                        where: { id: optVerification.id },
-                        update: {
-                            expiresAt: new Date(Date.now() + 1000 * 60 * 5),
-                            otp,
-                        },
-                        create: {
-                            expiresAt: new Date(Date.now() + 1000 * 60 * 5),
-                            otp,
-                            email: user.email || user.email!,
-                        },
-                    });
-                }
+                const expires = new Date(Date.now() + 1000 * 60 * 5);
+
+                const optVerification = await prisma.oTP.upsert({
+                    where: { email },
+                    update: {
+                        otp,
+                        expiresAt: expires,
+                        verifiedAt: null,
+                    },
+                    create: {
+                        email,
+                        otp,
+                        expiresAt: expires,
+                    },
+                });
+                // if (optVerification) {
+                //     optVerification = await prisma.oTP.upsert({
+                //         where: { id: optVerification.id },
+                //         update: {
+                //             expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+                //             otp,
+                //         },
+                //         create: {
+                //             expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+                //             otp,
+                //             email: user.email || user.email!,
+                //         },
+                //     });
+                // }
                 // send email
                 sendEmail({
                     to: user.email || user.email!,
@@ -70,7 +85,7 @@ router.post("/login", async (req, res) => {
                 res.status(403).json({ message: "Email not verified, mail has been sent" });
                 return;
             }
-            
+
             const token = generateToken(user);
             const sessionUser = {
                 id: user.id,
@@ -121,7 +136,7 @@ router.post("/verifyEmail", async (req, res) => {
         const user = await prisma.user.update({
             where: { email },
             data: {
-            emailVerified: true,
+                emailVerified: true,
             },
         });
         const token = generateToken(user);

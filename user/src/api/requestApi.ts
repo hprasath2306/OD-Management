@@ -25,8 +25,10 @@ api.interceptors.request.use(async (config) => {
 export const getStudentRequests = async () => {
   try {
     const response = await api.get('/requests/student');
+    console.log(response.data)
     return response.data.requests;
   } catch (error: any) {
+    console.log(error)
     throw new Error(error.response?.data?.message || 'Failed to fetch OD requests');
   }
 };

@@ -99,6 +99,7 @@ export default function ODRequests() {
   );
 
   if (error) {
+    console.log(error)
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />

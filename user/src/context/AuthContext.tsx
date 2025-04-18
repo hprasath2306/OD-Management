@@ -15,6 +15,9 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<any>;
+  verifyForgotPassword: (email: string, otp: string) => Promise<any>;
+  resetPassword: (email: string, otp: string, password: string) => Promise<any>;
+  verifyEmail: (email: string, otp: string) => Promise<any>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,6 +84,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const verifyForgotPassword = async (email: string, otp: string) => {
+    try {
+      return await authApi.verifyForgotPassword(email, otp);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string, otp: string, password: string) => {
+    try {
+      return await authApi.resetPassword(email, otp, password);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const verifyEmail = async (email: string, otp: string) => {
+    try {
+      const response = await authApi.verifyEmail(email, otp);
+      // console.log(response)
+      return response;
+    } catch (error) {
+      // console.log("uoihyu9iohyouhouh"+error)
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -90,6 +120,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         logout,
         forgotPassword,
+        verifyForgotPassword,
+        resetPassword,
+        verifyEmail,
       }}
     >
       {children}
