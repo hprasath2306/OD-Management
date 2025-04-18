@@ -41,11 +41,11 @@ export default function HomeScreen() {
     };
 
     requests.forEach((request: any) => {
-      if (request.status === ApprovalStatus.PENDING) {
+      if (request.approvals[0].status === ApprovalStatus.PENDING) {
         stats.pending++;
-      } else if (request.status === ApprovalStatus.APPROVED) {
+      } else if (request.approvals[0].status === ApprovalStatus.APPROVED) {
         stats.approved++;
-      } else if (request.status === ApprovalStatus.REJECTED) {
+      } else if (request.approvals[0].status === ApprovalStatus.REJECTED) {
         stats.rejected++;
       }
     });
@@ -60,7 +60,7 @@ export default function HomeScreen() {
     if (!requests) return null;
     
     const pendingRequests = requests.filter(
-      (req: any) => req.status === ApprovalStatus.PENDING
+      (req: any) => req.approvals[0].status === ApprovalStatus.PENDING
     );
     
     // Sort by created date (newest first)

@@ -30,6 +30,16 @@ export const getStudentRequests = async () => {
   }
 };
 
+// Get all labs
+export const getAllLabs = async () => {
+  try {
+    const response = await api.get('/lab');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch labs');
+  }
+};
+
 // Create a new OD request
 export const createODRequest = async (requestData: {
   type: RequestType;

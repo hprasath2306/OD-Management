@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,17 +11,35 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Modal,
+  FlatList
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 // import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation } from '@tanstack/react-query';
-import { createODRequest } from '../../../api/requestApi';
+import { createODRequest, getAllLabs } from '../../../api/requestApi';
 import { RequestType, ODCategory } from '../../../types/request';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
+
+// Simple type definitions for labs and students
+type Lab = {
+  id: string;
+  name: string;
+};
+
+type Student = {
+  id: string;
+  name: string;
+  rollNo?: string;
+  group?: {
+    id: string;
+    name: string;
+  };
+};
 
 export default function CreateODRequest() {
   const router = useRouter();
@@ -34,6 +52,50 @@ export default function CreateODRequest() {
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDate, setShowStartDate] = useState(false);
   const [showEndDate, setShowEndDate] = useState(false);
+  
+  // Add new state fields
+  const [isTeamRequest, setIsTeamRequest] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState<Student[]>([]);
+  const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
+  const [labs, setLabs] = useState<Lab[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [showLabModal, setShowLabModal] = useState(false);
+  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [isLoadingLabs, setIsLoadingLabs] = useState(false);
+  
+  // Load available labs for selection
+  useEffect(() => {
+    const loadLabs = async () => {
+      try {
+        setIsLoadingLabs(true);
+        const labsData = await getAllLabs();
+        setLabs(labsData);
+      } catch (error) {
+        console.error('Error loading labs:', error);
+        Alert.alert('Error', 'Failed to load labs. Please try again.');
+      } finally {
+        setIsLoadingLabs(false);
+      }
+    };
+    
+    // Load sample students
+    const loadStudents = async () => {
+      try {
+        // This would normally fetch from API
+        setStudents([
+          { id: '1', name: 'Student 1', rollNo: '2001' },
+          { id: '2', name: 'Student 2', rollNo: '2002' },
+          { id: '3', name: 'Student 3', rollNo: '2003' },
+          { id: '4', name: 'Student 4', rollNo: '2004' },
+        ]);
+      } catch (error) {
+        console.error('Error loading students:', error);
+      }
+    };
+    
+    loadLabs();
+    loadStudents();
+  }, []);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -74,19 +136,44 @@ export default function CreateODRequest() {
       Alert.alert('Error', 'End date must be after start date');
       return;
     }
+    
+    if (needsLab && !selectedLab) {
+      Alert.alert('Error', 'Please select a lab');
+      return;
+    }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Prepare student IDs for team requests
+    let studentIds = [user?.id || ''];
+    if (isTeamRequest && selectedStudents.length > 0) {
+      studentIds = selectedStudents.map(s => s.id);
+      if (!studentIds.includes(user?.id || '')) {
+        studentIds.push(user?.id || '');
+      }
+    }
 
     submitMutation.mutate({
       type: RequestType.OD,
-      category,
+      // @ts-ignore
+      category: category,
       needsLab,
       reason,
       description,
       startDate,
       endDate,
-      students: [user?.id || ''], // Add current user as a student
+      labId: selectedLab?.id,
+      students: studentIds
     });
+  };
+
+  const toggleStudentSelection = (student: Student) => {
+    if (selectedStudents.some(s => s.id === student.id)) {
+      setSelectedStudents(selectedStudents.filter(s => s.id !== student.id));
+    } else {
+      setSelectedStudents([...selectedStudents, student]);
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const categories = Object.values(ODCategory);
@@ -160,6 +247,60 @@ export default function CreateODRequest() {
               </TouchableOpacity>
             ))}
           </View>
+          
+          {/* Team Request Switch */}
+          <View style={styles.switchContainer}>
+            <Text style={styles.switchLabel}>
+              Team Request
+            </Text>
+            <Switch
+              value={isTeamRequest}
+              onValueChange={(value) => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setIsTeamRequest(value);
+                if (!value) {
+                  setSelectedStudents([]);
+                }
+              }}
+              trackColor={{ false: '#ddd', true: '#b39ddb' }}
+              thumbColor={isTeamRequest ? '#6200ee' : '#f4f3f4'}
+            />
+          </View>
+          
+          {/* Team Student Selection */}
+          {isTeamRequest && (
+            <View style={styles.teamSection}>
+              <Text style={styles.sectionTitle}>Team Members</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowStudentModal(true)}
+              >
+                <Ionicons name="people" size={20} color="#6200ee" />
+                <Text style={styles.selectButtonText}>
+                  {selectedStudents.length > 0
+                    ? `${selectedStudents.length} student(s) selected`
+                    : 'Select team members'}
+                </Text>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+              
+              {selectedStudents.length > 0 && (
+                <View style={styles.selectedItemsContainer}>
+                  {selectedStudents.map(student => (
+                    <View key={student.id} style={styles.selectedItem}>
+                      <Text style={styles.selectedItemText}>{student.name}</Text>
+                      <TouchableOpacity
+                        onPress={() => toggleStudentSelection(student)}
+                        style={styles.removeButton}
+                      >
+                        <Ionicons name="close-circle" size={18} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
 
           <Text style={styles.sectionTitle}>Lab Required</Text>
           <View style={styles.switchContainer}>
@@ -171,11 +312,31 @@ export default function CreateODRequest() {
               onValueChange={(value) => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setNeedsLab(value);
+                if (!value) {
+                  setSelectedLab(null);
+                }
               }}
               trackColor={{ false: '#ddd', true: '#b39ddb' }}
               thumbColor={needsLab ? '#6200ee' : '#f4f3f4'}
             />
           </View>
+          
+          {/* Lab Selection */}
+          {needsLab && (
+            <View style={styles.labSection}>
+              <Text style={styles.sectionTitle}>Select Lab</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowLabModal(true)}
+              >
+                <Ionicons name="flask" size={20} color="#6200ee" />
+                <Text style={styles.selectButtonText}>
+                  {selectedLab ? selectedLab.name : 'Select a lab'}
+                </Text>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
 
           <Text style={styles.sectionTitle}>Duration</Text>
           <View style={styles.dateContainer}>
@@ -241,6 +402,116 @@ export default function CreateODRequest() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      
+      {/* Lab Selection Modal */}
+      <Modal
+        visible={showLabModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLabModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Lab</Text>
+              <TouchableOpacity
+                onPress={() => setShowLabModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            {isLoadingLabs ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6200ee" />
+                <Text style={styles.loadingText}>Loading labs...</Text>
+              </View>
+            ) : labs.length === 0 ? (
+              <Text style={styles.noDataText}>No labs available</Text>
+            ) : (
+              <FlatList
+                data={labs}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.labItem}
+                    onPress={() => {
+                      setSelectedLab(item);
+                      setShowLabModal(false);
+                    }}
+                  >
+                    <Text style={styles.labName}>{item.name}</Text>
+                    <View style={styles.radioContainer}>
+                      {selectedLab?.id === item.id ? (
+                        <Ionicons name="radio-button-on" size={24} color="#6200ee" />
+                      ) : (
+                        <Ionicons name="radio-button-off" size={24} color="#666" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Student Selection Modal */}
+      <Modal
+        visible={showStudentModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowStudentModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Students</Text>
+              <TouchableOpacity
+                onPress={() => setShowStudentModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={students}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.studentItem}
+                  onPress={() => toggleStudentSelection(item)}
+                >
+                  <View style={styles.studentInfo}>
+                    <Text style={styles.studentName}>{item.name}</Text>
+                    {item.rollNo && (
+                      <Text style={styles.studentDetails}>
+                        Roll No: {item.rollNo}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.checkboxContainer}>
+                    {selectedStudents.some(s => s.id === item.id) ? (
+                      <Ionicons name="checkbox" size={24} color="#6200ee" />
+                    ) : (
+                      <Ionicons name="square-outline" size={24} color="#666" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowStudentModal(false)}
+            >
+              <Text style={styles.modalButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -255,6 +526,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 10,
+    paddingHorizontal: 16,
     marginTop: 24,
   },
   backButton: {
@@ -291,15 +563,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     color: '#333',
+    marginBottom: 16,
   },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
   },
+  typeContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    marginBottom: 16,
+    padding: 2,
+  },
+  typeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  typeButtonActive: {
+    backgroundColor: '#6200ee',
+  },
+  typeText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  typeTextActive: {
+    color: '#fff',
+  },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   categoryButton: {
     paddingHorizontal: 14,
@@ -339,6 +636,7 @@ const styles = StyleSheet.create({
   dateContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
   dateItem: {
     width: '48%',
@@ -377,5 +675,147 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // New styles
+  teamSection: {
+    marginBottom: 16,
+  },
+  labSection: {
+    marginBottom: 16,
+  },
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectButtonText: {
+    fontSize: 15,
+    color: '#333',
+    flex: 1,
+    marginLeft: 10,
+  },
+  selectedItemsContainer: {
+    marginTop: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  selectedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  selectedItemText: {
+    fontSize: 14,
+    color: '#333',
+    marginRight: 4,
+  },
+  removeButton: {
+    padding: 2,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 30,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  labItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  labName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  radioContainer: {
+    padding: 4,
+  },
+  studentItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  studentInfo: {
+    flex: 1,
+  },
+  studentName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  studentDetails: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  checkboxContainer: {
+    padding: 4,
+  },
+  modalButton: {
+    backgroundColor: '#6200ee',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  noDataText: {
+    padding: 20,
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
   },
 }); 

@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -44,7 +45,17 @@ export default function ProfileScreen() {
       <StatusBar style="dark" />
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Profile</Text>
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.profileSection}>
@@ -61,7 +72,7 @@ export default function ProfileScreen() {
 
         <View style={styles.infoSection}>
           <Text style={styles.sectionTitle}>Account Information</Text>
-          
+
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
               <Ionicons name="mail-outline" size={22} color="#6200ee" style={styles.infoIcon} />
@@ -112,8 +123,8 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.logoutButton]} 
+          <TouchableOpacity
+            style={[styles.actionButton, styles.logoutButton]}
             onPress={handleLogout}
           >
             <Ionicons name="log-out-outline" size={22} color="#ff3b30" />
@@ -139,11 +150,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginTop: 24,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
   },
   headerTitle: {
     fontSize: 22,

@@ -57,7 +57,13 @@ export default function ODRequests() {
       style={styles.requestCard}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(`/(app)/odrequest/${item.id}`);
+        router.push({
+          pathname: `/(app)/odrequest/[id]`,
+          params: { 
+            id: item.id,
+            request: JSON.stringify(item)
+          }
+        });
       }}
     >
       <View style={styles.cardHeader}>
