@@ -4,10 +4,9 @@ export enum RequestType {
 }
 
 export enum ODCategory {
-  SPORTS = 'SPORTS',
-  CULTURAL = 'CULTURAL',
-  CONFERENCE = 'CONFERENCE',
-  COMPETITION = 'COMPETITION',
+  PROJECT = 'PROJECT',
+  SEMINAR = 'SEMINAR',
+  SYMPOSIUM = 'SYMPOSIUM',
   OTHER = 'OTHER'
 }
 

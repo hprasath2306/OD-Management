@@ -18,9 +18,9 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-// import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation } from '@tanstack/react-query';
-import { createODRequest, getAllLabs } from '../../../api/requestApi';
+import { createODRequest, getAllLabs, getAllStudents } from '../../../api/requestApi';
 import { RequestType, ODCategory } from '../../../types/request';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
@@ -39,6 +39,11 @@ type Student = {
     id: string;
     name: string;
   };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };
 
 export default function CreateODRequest() {
@@ -47,7 +52,7 @@ export default function CreateODRequest() {
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [needsLab, setNeedsLab] = useState(false);
-  const [category, setCategory] = useState<ODCategory>(ODCategory.OTHER);
+  const [category, setCategory] = useState<ODCategory>(ODCategory.PROJECT);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDate, setShowStartDate] = useState(false);
@@ -62,8 +67,9 @@ export default function CreateODRequest() {
   const [showLabModal, setShowLabModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [isLoadingLabs, setIsLoadingLabs] = useState(false);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   
-  // Load available labs for selection
+  // Load available labs and students
   useEffect(() => {
     const loadLabs = async () => {
       try {
@@ -78,24 +84,28 @@ export default function CreateODRequest() {
       }
     };
     
-    // Load sample students
     const loadStudents = async () => {
       try {
-        // This would normally fetch from API
-        setStudents([
-          { id: '1', name: 'Student 1', rollNo: '2001' },
-          { id: '2', name: 'Student 2', rollNo: '2002' },
-          { id: '3', name: 'Student 3', rollNo: '2003' },
-          { id: '4', name: 'Student 4', rollNo: '2004' },
-        ]);
+        setIsLoadingStudents(true);
+        const studentsData = await getAllStudents();
+        
+        // Filter out the current user from the team members list
+        const filteredStudents = Array.isArray(studentsData)
+          ? studentsData.filter(student => student.user?.id !== user?.id)
+          : [];
+          
+        setStudents(filteredStudents);
       } catch (error) {
         console.error('Error loading students:', error);
+        Alert.alert('Error', 'Failed to load students. Please try again.');
+      } finally {
+        setIsLoadingStudents(false);
       }
     };
     
     loadLabs();
     loadStudents();
-  }, []);
+  }, [user?.id]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -147,7 +157,8 @@ export default function CreateODRequest() {
     // Prepare student IDs for team requests
     let studentIds = [user?.id || ''];
     if (isTeamRequest && selectedStudents.length > 0) {
-      studentIds = selectedStudents.map(s => s.id);
+      // Use the user ID from each student object if available
+      studentIds = selectedStudents.map(s => s.user?.id || s.id);
       if (!studentIds.includes(user?.id || '')) {
         studentIds.push(user?.id || '');
       }
@@ -288,7 +299,7 @@ export default function CreateODRequest() {
                 <View style={styles.selectedItemsContainer}>
                   {selectedStudents.map(student => (
                     <View key={student.id} style={styles.selectedItem}>
-                      <Text style={styles.selectedItemText}>{student.name}</Text>
+                      <Text style={styles.selectedItemText}>{student.user?.name || student.name}</Text>
                       <TouchableOpacity
                         onPress={() => toggleStudentSelection(student)}
                         style={styles.removeButton}
@@ -349,7 +360,7 @@ export default function CreateODRequest() {
                 <Ionicons name="calendar-outline" size={18} color="#6200ee" />
                 <Text style={styles.dateText}>{formatDate(startDate)}</Text>
               </TouchableOpacity>
-              {/* {showStartDate && (
+              {showStartDate && (
                 <DateTimePicker
                   value={startDate}
                   mode="date"
@@ -361,7 +372,7 @@ export default function CreateODRequest() {
                     }
                   }}
                 />
-              )} */}
+              )}
             </View>
 
             <View style={styles.dateItem}>
@@ -373,7 +384,7 @@ export default function CreateODRequest() {
                 <Ionicons name="calendar-outline" size={18} color="#6200ee" />
                 <Text style={styles.dateText}>{formatDate(endDate)}</Text>
               </TouchableOpacity>
-              {/* {showEndDate && (
+              {showEndDate && (
                 <DateTimePicker
                   value={endDate}
                   mode="date"
@@ -385,7 +396,7 @@ export default function CreateODRequest() {
                     }
                   }}
                 />
-              )} */}
+              )}
             </View>
           </View>
 
@@ -476,32 +487,41 @@ export default function CreateODRequest() {
               </TouchableOpacity>
             </View>
             
-            <FlatList
-              data={students}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.studentItem}
-                  onPress={() => toggleStudentSelection(item)}
-                >
-                  <View style={styles.studentInfo}>
-                    <Text style={styles.studentName}>{item.name}</Text>
-                    {item.rollNo && (
-                      <Text style={styles.studentDetails}>
-                        Roll No: {item.rollNo}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.checkboxContainer}>
-                    {selectedStudents.some(s => s.id === item.id) ? (
-                      <Ionicons name="checkbox" size={24} color="#6200ee" />
-                    ) : (
-                      <Ionicons name="square-outline" size={24} color="#666" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
+            {isLoadingStudents ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6200ee" />
+                <Text style={styles.loadingText}>Loading students...</Text>
+              </View>
+            ) : students.length === 0 ? (
+              <Text style={styles.noDataText}>No students available</Text>
+            ) : (
+              <FlatList
+                data={students}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.studentItem}
+                    onPress={() => toggleStudentSelection(item)}
+                  >
+                    <View style={styles.studentInfo}>
+                      <Text style={styles.studentName}>{item.user?.name || item.name}</Text>
+                      {item.rollNo && (
+                        <Text style={styles.studentDetails}>
+                          Roll No: {item.rollNo} {item.group?.name ? `• ${item.group.name}` : ''}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.checkboxContainer}>
+                      {selectedStudents.some(s => s.id === item.id) ? (
+                        <Ionicons name="checkbox" size={24} color="#6200ee" />
+                      ) : (
+                        <Ionicons name="square-outline" size={24} color="#666" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
             
             <TouchableOpacity
               style={styles.modalButton}
