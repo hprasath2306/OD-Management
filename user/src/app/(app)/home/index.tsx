@@ -68,7 +68,7 @@ export default function HomeScreen() {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     
-    return pendingRequests[0];
+    return pendingRequests[pendingRequests.length - 1];
   };
 
   const recentPendingRequest = getRecentPendingRequest();

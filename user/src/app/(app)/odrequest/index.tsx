@@ -139,7 +139,7 @@ export default function ODRequests() {
         <>
           {requests && requests.length > 0 ? (
             <FlatList
-              data={requests}
+              data={requests.reverse()}
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContainer}
