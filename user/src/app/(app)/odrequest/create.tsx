@@ -13,7 +13,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  FlatList
+  FlatList,
+  ImageBackground,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import { createODRequest, getAllLabs, getAllStudents } from '../../../api/reques
 import { RequestType, ODCategory } from '../../../types/request';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Simple type definitions for labs and students
 type Lab = {
@@ -211,205 +213,248 @@ export default function CreateODRequest() {
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-          <Text style={styles.sectionTitle}>Reason *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter reason for OD"
-            value={reason}
-            onChangeText={setReason}
-            placeholderTextColor="#999"
-            multiline
-          />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="document-text-outline" size={22} color="#4f5b93" />
+              <Text style={styles.cardTitle}>Request Details</Text>
+            </View>
+            
+            <Text style={styles.sectionTitle}>Reason <Text style={styles.requiredStar}>*</Text></Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter reason for OD"
+              value={reason}
+              onChangeText={setReason}
+              placeholderTextColor="#999"
+              multiline
+            />
 
-          <Text style={styles.sectionTitle}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Enter additional details"
-            value={description}
-            onChangeText={setDescription}
-            placeholderTextColor="#999"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
+            <Text style={styles.sectionTitle}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Enter additional details"
+              value={description}
+              onChangeText={setDescription}
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
 
-          <Text style={styles.sectionTitle}>Category</Text>
-          <View style={styles.categoryContainer}>
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryButton,
-                  category === cat && styles.categoryButtonActive,
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setCategory(cat);
-                }}
-              >
-                <Text
+            <Text style={styles.sectionTitle}>Category</Text>
+            <View style={styles.categoryContainer}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
                   style={[
-                    styles.categoryText,
-                    category === cat && styles.categoryTextActive,
+                    styles.categoryButton,
+                    category === cat && styles.categoryButtonActive,
                   ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setCategory(cat);
+                  }}
                 >
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      category === cat && styles.categoryTextActive,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
           
-          {/* Team Request Switch */}
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>
-              Team Request
-            </Text>
-            <Switch
-              value={isTeamRequest}
-              onValueChange={(value) => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setIsTeamRequest(value);
-                if (!value) {
-                  setSelectedStudents([]);
-                }
-              }}
-              trackColor={{ false: '#ddd', true: '#b39ddb' }}
-              thumbColor={isTeamRequest ? '#6200ee' : '#f4f3f4'}
-            />
-          </View>
-          
-          {/* Team Student Selection */}
-          {isTeamRequest && (
-            <View style={styles.teamSection}>
-              <Text style={styles.sectionTitle}>Team Members</Text>
-              <TouchableOpacity
-                style={styles.selectButton}
-                onPress={() => setShowStudentModal(true)}
-              >
-                <Ionicons name="people" size={20} color="#6200ee" />
-                <Text style={styles.selectButtonText}>
-                  {selectedStudents.length > 0
-                    ? `${selectedStudents.length} student(s) selected`
-                    : 'Select team members'}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="people-outline" size={22} color="#4f5b93" />
+              <Text style={styles.cardTitle}>Team Request</Text>
+            </View>
+            
+            <View style={styles.switchContainer}>
+              <View style={styles.switchLabelContainer}>
+                <Text style={styles.switchLabel}>
+                  Team Request
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
-              </TouchableOpacity>
-              
-              {selectedStudents.length > 0 && (
-                <View style={styles.selectedItemsContainer}>
-                  {selectedStudents.map(student => (
-                    <View key={student.id} style={styles.selectedItem}>
-                      <Text style={styles.selectedItemText}>{student.user?.name || student.name}</Text>
-                      <TouchableOpacity
-                        onPress={() => toggleStudentSelection(student)}
-                        style={styles.removeButton}
-                      >
-                        <Ionicons name="close-circle" size={18} color="#666" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-
-          <Text style={styles.sectionTitle}>Lab Required</Text>
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>
-              Do you need lab access for this OD?
-            </Text>
-            <Switch
-              value={needsLab}
-              onValueChange={(value) => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setNeedsLab(value);
-                if (!value) {
-                  setSelectedLab(null);
-                }
-              }}
-              trackColor={{ false: '#ddd', true: '#b39ddb' }}
-              thumbColor={needsLab ? '#6200ee' : '#f4f3f4'}
-            />
-          </View>
-          
-          {/* Lab Selection */}
-          {needsLab && (
-            <View style={styles.labSection}>
-              <Text style={styles.sectionTitle}>Select Lab</Text>
-              <TouchableOpacity
-                style={styles.selectButton}
-                onPress={() => setShowLabModal(true)}
-              >
-                <Ionicons name="flask" size={20} color="#6200ee" />
-                <Text style={styles.selectButtonText}>
-                  {selectedLab ? selectedLab.name : 'Select a lab'}
+                <Text style={styles.switchDescription}>
+                  Enable if you're submitting this request for a team
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
-              </TouchableOpacity>
+              </View>
+              <Switch
+                value={isTeamRequest}
+                onValueChange={(value) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setIsTeamRequest(value);
+                  if (!value) {
+                    setSelectedStudents([]);
+                  }
+                }}
+                trackColor={{ false: '#ddd', true: '#b39ddb' }}
+                thumbColor={isTeamRequest ? '#4f5b93' : '#f4f3f4'}
+              />
             </View>
-          )}
+            
+            {isTeamRequest && (
+              <View style={styles.teamSection}>
+                <Text style={styles.sectionTitle}>Team Members</Text>
+                <TouchableOpacity
+                  style={styles.selectButton}
+                  onPress={() => setShowStudentModal(true)}
+                >
+                  <Ionicons name="people" size={20} color="#4f5b93" />
+                  <Text style={styles.selectButtonText}>
+                    {selectedStudents.length > 0
+                      ? `${selectedStudents.length} student(s) selected`
+                      : 'Select team members'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={20} color="#666" />
+                </TouchableOpacity>
+                
+                {selectedStudents.length > 0 && (
+                  <View style={styles.selectedItemsContainer}>
+                    {selectedStudents.map(student => (
+                      <View key={student.id} style={styles.selectedItem}>
+                        <Text style={styles.selectedItemText}>{student.user?.name || student.name}</Text>
+                        <TouchableOpacity
+                          onPress={() => toggleStudentSelection(student)}
+                          style={styles.removeButton}
+                        >
+                          <Ionicons name="close-circle" size={18} color="#666" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
 
-          <Text style={styles.sectionTitle}>Duration</Text>
-          <View style={styles.dateContainer}>
-            <View style={styles.dateItem}>
-              <Text style={styles.dateLabel}>Start Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowStartDate(true)}
-              >
-                <Ionicons name="calendar-outline" size={18} color="#6200ee" />
-                <Text style={styles.dateText}>{formatDate(startDate)}</Text>
-              </TouchableOpacity>
-              {showStartDate && (
-                <DateTimePicker
-                  value={startDate}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowStartDate(false);
-                    if (selectedDate) {
-                      setStartDate(selectedDate);
-                    }
-                  }}
-                />
-              )}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="flask-outline" size={22} color="#4f5b93" />
+              <Text style={styles.cardTitle}>Lab Access</Text>
             </View>
+          
+            <View style={styles.switchContainer}>
+              <View style={styles.switchLabelContainer}>
+                <Text style={styles.switchLabel}>
+                  Lab Required
+                </Text>
+                <Text style={styles.switchDescription}>
+                  Do you need lab access for this OD?
+                </Text>
+              </View>
+              <Switch
+                value={needsLab}
+                onValueChange={(value) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setNeedsLab(value);
+                  if (!value) {
+                    setSelectedLab(null);
+                  }
+                }}
+                trackColor={{ false: '#ddd', true: '#b39ddb' }}
+                thumbColor={needsLab ? '#4f5b93' : '#f4f3f4'}
+              />
+            </View>
+            
+            {needsLab && (
+              <View style={styles.labSection}>
+                <Text style={styles.sectionTitle}>Select Lab</Text>
+                <TouchableOpacity
+                  style={styles.selectButton}
+                  onPress={() => setShowLabModal(true)}
+                >
+                  <Ionicons name="flask" size={20} color="#4f5b93" />
+                  <Text style={styles.selectButtonText}>
+                    {selectedLab ? selectedLab.name : 'Select a lab'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={20} color="#666" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
 
-            <View style={styles.dateItem}>
-              <Text style={styles.dateLabel}>End Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowEndDate(true)}
-              >
-                <Ionicons name="calendar-outline" size={18} color="#6200ee" />
-                <Text style={styles.dateText}>{formatDate(endDate)}</Text>
-              </TouchableOpacity>
-              {showEndDate && (
-                <DateTimePicker
-                  value={endDate}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowEndDate(false);
-                    if (selectedDate) {
-                      setEndDate(selectedDate);
-                    }
-                  }}
-                />
-              )}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="calendar-outline" size={22} color="#4f5b93" />
+              <Text style={styles.cardTitle}>Duration</Text>
+            </View>
+            
+            <View style={styles.dateContainer}>
+              <View style={styles.dateItem}>
+                <Text style={styles.dateLabel}>Start Date</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowStartDate(true)}
+                >
+                  <Ionicons name="calendar-outline" size={18} color="#4f5b93" />
+                  <Text style={styles.dateText}>{formatDate(startDate)}</Text>
+                </TouchableOpacity>
+                {showStartDate && (
+                  <DateTimePicker
+                    value={startDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowStartDate(false);
+                      if (selectedDate) {
+                        setStartDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+              </View>
+
+              <View style={styles.dateItem}>
+                <Text style={styles.dateLabel}>End Date</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowEndDate(true)}
+                >
+                  <Ionicons name="calendar-outline" size={18} color="#4f5b93" />
+                  <Text style={styles.dateText}>{formatDate(endDate)}</Text>
+                </TouchableOpacity>
+                {showEndDate && (
+                  <DateTimePicker
+                    value={endDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowEndDate(false);
+                      if (selectedDate) {
+                        setEndDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+              </View>
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.submitButton}
+            activeOpacity={0.8}
             onPress={handleSubmit}
             disabled={submitMutation.isPending}
           >
-            {submitMutation.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitText}>Submit Request</Text>
-            )}
+            <LinearGradient
+              colors={['#4f5b93', '#6373b5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitButton}
+            >
+              {submitMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="paper-plane" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.submitText}>Submit Request</Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -435,7 +480,7 @@ export default function CreateODRequest() {
             
             {isLoadingLabs ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6200ee" />
+                <ActivityIndicator size="large" color="#4f5b93" />
                 <Text style={styles.loadingText}>Loading labs...</Text>
               </View>
             ) : labs.length === 0 ? (
@@ -452,10 +497,13 @@ export default function CreateODRequest() {
                       setShowLabModal(false);
                     }}
                   >
-                    <Text style={styles.labName}>{item.name}</Text>
+                    <View style={styles.labNameContainer}>
+                      <Ionicons name="flask-outline" size={20} color="#4f5b93" style={{ marginRight: 10 }} />
+                      <Text style={styles.labName}>{item.name}</Text>
+                    </View>
                     <View style={styles.radioContainer}>
                       {selectedLab?.id === item.id ? (
-                        <Ionicons name="radio-button-on" size={24} color="#6200ee" />
+                        <Ionicons name="radio-button-on" size={24} color="#4f5b93" />
                       ) : (
                         <Ionicons name="radio-button-off" size={24} color="#666" />
                       )}
@@ -464,6 +512,20 @@ export default function CreateODRequest() {
                 )}
               />
             )}
+            
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setShowLabModal(false)}
+            >
+              <LinearGradient
+                colors={['#4f5b93', '#6373b5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalButton}
+              >
+                <Text style={styles.modalButtonText}>Done</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -489,7 +551,7 @@ export default function CreateODRequest() {
             
             {isLoadingStudents ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6200ee" />
+                <ActivityIndicator size="large" color="#4f5b93" />
                 <Text style={styles.loadingText}>Loading students...</Text>
               </View>
             ) : students.length === 0 ? (
@@ -513,7 +575,7 @@ export default function CreateODRequest() {
                     </View>
                     <View style={styles.checkboxContainer}>
                       {selectedStudents.some(s => s.id === item.id) ? (
-                        <Ionicons name="checkbox" size={24} color="#6200ee" />
+                        <Ionicons name="checkbox" size={24} color="#4f5b93" />
                       ) : (
                         <Ionicons name="square-outline" size={24} color="#666" />
                       )}
@@ -524,10 +586,17 @@ export default function CreateODRequest() {
             )}
             
             <TouchableOpacity
-              style={styles.modalButton}
+              activeOpacity={0.8}
               onPress={() => setShowStudentModal(false)}
             >
-              <Text style={styles.modalButtonText}>Done</Text>
+              <LinearGradient
+                colors={['#4f5b93', '#6373b5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalButton}
+              >
+                <Text style={styles.modalButtonText}>Done</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -539,15 +608,20 @@ export default function CreateODRequest() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f7fa',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 15,
     paddingHorizontal: 16,
     marginTop: 24,
+    // backgroundColor: '#fff',
+    // elevation: 2,
+    // shadowOpacity: 0.1,
+    // shadowRadius: 2,
+    // shadowOffset: { width: 0, height: 2 },
   },
   backButton: {
     width: 40,
@@ -568,20 +642,48 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  sectionTitle: {
-    fontSize: 16,
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  cardTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 16,
+    marginLeft: 12,
+  },
+  requiredStar: {
+    color: '#e53935',
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 8,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e0e0e0',
     color: '#333',
     marginBottom: 16,
   },
@@ -589,34 +691,10 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
   },
-  typeContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    marginBottom: 16,
-    padding: 2,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  typeButtonActive: {
-    backgroundColor: '#6200ee',
-  },
-  typeText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  typeTextActive: {
-    color: '#fff',
-  },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   categoryButton: {
     paddingHorizontal: 14,
@@ -625,9 +703,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     marginRight: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   categoryButtonActive: {
-    backgroundColor: '#6200ee',
+    backgroundColor: '#4f5b93',
+    borderColor: '#4f5b93',
   },
   categoryText: {
     fontSize: 14,
@@ -641,54 +722,65 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e0e0e0',
+  },
+  switchLabelContainer: {
+    flex: 1,
   },
   switchLabel: {
     fontSize: 16,
+    fontWeight: '500',
     color: '#333',
-    flex: 1,
+  },
+  switchDescription: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 4,
   },
   dateContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   dateItem: {
     width: '48%',
   },
   dateLabel: {
     fontSize: 14,
-    color: '#666',
+    fontWeight: '500',
+    color: '#555',
     marginBottom: 8,
   },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e0e0e0',
   },
   dateText: {
     marginLeft: 8,
-    fontSize: 16,
+    fontSize: 15,
     color: '#333',
   },
   submitButton: {
-    backgroundColor: '#6200ee',
-    borderRadius: 8,
+    borderRadius: 25,
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 24,
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 16,
     elevation: 2,
     shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
   submitText: {
@@ -696,22 +788,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  // New styles
+  // Team section styles
   teamSection: {
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 8,
   },
   labSection: {
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 8,
   },
   selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e0e0e0',
   },
   selectButtonText: {
     fontSize: 15,
@@ -720,19 +814,21 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   selectedItemsContainer: {
-    marginTop: 8,
+    marginTop: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   selectedItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#eef0f7',
     borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     marginRight: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#dde2f0',
   },
   selectedItemText: {
     fontSize: 14,
@@ -742,6 +838,7 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 2,
   },
+  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -753,7 +850,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     paddingHorizontal: 16,
     paddingBottom: 30,
-    maxHeight: '70%',
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -775,9 +872,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  labNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   labName: {
     fontSize: 16,
@@ -791,7 +892,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -805,17 +906,17 @@ const styles = StyleSheet.create({
   },
   studentDetails: {
     fontSize: 14,
-    color: '#666',
+    color: '#777',
     marginTop: 2,
   },
   checkboxContainer: {
     padding: 4,
   },
   modalButton: {
-    backgroundColor: '#6200ee',
-    borderRadius: 8,
+    borderRadius: 25,
     paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 16,
   },
   modalButtonText: {
@@ -824,7 +925,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   loadingContainer: {
-    padding: 20,
+    padding: 30,
     alignItems: 'center',
   },
   loadingText: {
@@ -833,7 +934,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   noDataText: {
-    padding: 20,
+    padding: 30,
     textAlign: 'center',
     fontSize: 16,
     color: '#666',
