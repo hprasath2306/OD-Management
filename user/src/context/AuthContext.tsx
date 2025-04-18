@@ -18,6 +18,7 @@ type AuthContextType = {
   verifyForgotPassword: (email: string, otp: string) => Promise<any>;
   resetPassword: (email: string, otp: string, password: string) => Promise<any>;
   verifyEmail: (email: string, otp: string) => Promise<any>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<any>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -111,6 +112,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    try {
+      return await authApi.changePassword(oldPassword, newPassword);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -123,6 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         verifyForgotPassword,
         resetPassword,
         verifyEmail,
+        changePassword,
       }}
     >
       {children}

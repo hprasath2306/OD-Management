@@ -60,6 +60,15 @@ export const resetPassword = async (email: string, otp: string, password: string
   }
 };
 
+export const changePassword = async (oldPassword: string, newPassword: string) => {
+  try {
+    const response = await api.post('/auth/changePassword', { oldPassword, newPassword });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to change password');
+  }
+};
+
 export const verifyEmail = async (email: string, otp: string) => {
   try {
     const response = await api.post('/auth/verifyEmail', { email, otp });
