@@ -32,26 +32,40 @@ router.post("/login", async (req, res) => {
         if (isValidPassword) {
             if (!user.emailVerified) {
                 // send email verification mail
-                let optVerification = await prisma.oTP.findFirst({
-                    where: {
-                        email: user.email || user.email,
+                // let optVerification = await prisma.oTP.findFirst({
+                //     where: {
+                //         email: user.email || user.email!,
+                //     },
+                // });
+                const otp = generateOTP();
+                const expires = new Date(Date.now() + 1000 * 60 * 5);
+                const optVerification = await prisma.oTP.upsert({
+                    where: { email },
+                    update: {
+                        otp,
+                        expiresAt: expires,
+                        verifiedAt: null,
+                    },
+                    create: {
+                        email,
+                        otp,
+                        expiresAt: expires,
                     },
                 });
-                const otp = generateOTP();
-                if (optVerification) {
-                    optVerification = await prisma.oTP.upsert({
-                        where: { id: optVerification.id },
-                        update: {
-                            expiresAt: new Date(Date.now() + 1000 * 60 * 5),
-                            otp,
-                        },
-                        create: {
-                            expiresAt: new Date(Date.now() + 1000 * 60 * 5),
-                            otp,
-                            email: user.email || user.email,
-                        },
-                    });
-                }
+                // if (optVerification) {
+                //     optVerification = await prisma.oTP.upsert({
+                //         where: { id: optVerification.id },
+                //         update: {
+                //             expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+                //             otp,
+                //         },
+                //         create: {
+                //             expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+                //             otp,
+                //             email: user.email || user.email!,
+                //         },
+                //     });
+                // }
                 // send email
                 sendEmail({
                     to: user.email || user.email,
