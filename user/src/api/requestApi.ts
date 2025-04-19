@@ -2,8 +2,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RequestType, ODCategory } from '../types/request';
 
-const BASE_URL = 'http://10.0.2.2:3000/api';
-// const BASE_URL = 'https://od-management-7t72.onrender.com/api';
+// const BASE_URL = 'http://10.0.2.2:3000/api';
+const BASE_URL = 'https://od-management-7t72.onrender.com/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -149,6 +149,7 @@ export const createODRequest = async (requestData: {
     const response = await api.post('/requests', requestData);
     return response.data;
   } catch (error: any) {
+    console.log(error)
     throw new Error(error.response?.data?.message || 'Failed to create OD request');
   }
 };

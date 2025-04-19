@@ -15,6 +15,7 @@ export class RequestController {
       return
 
     } catch (error: any) {
+      console.log(error)
       res.status(400).json({ error: error.message });
       return
     }

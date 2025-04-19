@@ -83,6 +83,17 @@ export default function AppLayout() {
         />
       ) : ""}
 
+      {isStudent ? (
+        <Tabs.Screen
+          name="odrequest/index"
+          options={{
+            title: 'OD Requests',
+            tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={22} color={color} />,
+          }}
+        />
+      ) : ""}
+      
+
       {/* Hidden screens for navigation */}
       <Tabs.Screen
         name="odrequest/create"
