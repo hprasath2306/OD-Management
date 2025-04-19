@@ -12,7 +12,7 @@ type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, checkOnly?: boolean) => Promise<any>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<any>;
   verifyForgotPassword: (email: string, otp: string) => Promise<any>;
@@ -49,13 +49,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, checkOnly: boolean = false) => {
     try {
       setIsLoading(true);
       const response = await authApi.login(email, password);
+      
+      // If we're just checking the role (for admin validation), return the response
+      if (checkOnly) {
+        return response;
+      }
+      
+      // Otherwise set the user and proceed with navigation
       setUser(response.user);
       setIsAuthenticated(true);
       router.replace('/(app)/home');
+      return response;
     } catch (error) {
       throw error;
     } finally {
@@ -104,10 +112,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const verifyEmail = async (email: string, otp: string) => {
     try {
       const response = await authApi.verifyEmail(email, otp);
-      // console.log(response)
       return response;
     } catch (error) {
-      // console.log("uoihyu9iohyouhouh"+error)
       throw error;
     }
   };

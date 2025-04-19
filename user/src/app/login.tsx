@@ -41,7 +41,28 @@ export default function LoginScreen() {
     try {
       setIsLoading(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await login(email, password);
+      
+      // First check if the response indicates an admin account
+      const response = await login(email, password, true);
+      
+      // If login was successful and returned user is an admin, prevent login
+      if (response?.user?.role === 'ADMIN') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          'Admin Access Restricted',
+          'Admin users should use the website for full functionality. This mobile app is for students only.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reset the form
+                setPassword('');
+              }
+            }
+          ]
+        );
+        return;
+      }
     } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       
