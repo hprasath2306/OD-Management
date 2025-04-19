@@ -12,8 +12,8 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { cancelRequest } from '../../../api/requestApi';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { cancelRequest, getStudentRequests } from '../../../api/requestApi';
 import { ApprovalStatus, OdRequest } from '../../../types/request';
 import * as Haptics from 'expo-haptics';
 
@@ -24,18 +24,58 @@ export default function RequestDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  // Query to fetch requests if needed
+  const { data: requests } = useQuery({
+    queryKey: ['odRequests'],
+    queryFn: getStudentRequests,
+    enabled: !request && !!id, // Only run this query if we don't have the request and have an ID
+  });
+
   // Parse the request from params
   useEffect(() => {
-    if (requestParam) {
-      try {
-        const parsedRequest = JSON.parse(requestParam) as OdRequest;
-        setRequest(parsedRequest);
-      } catch (e) {
-        console.error('Error parsing request:', e);
+    const loadRequest = async () => {
+      // Try to get from params first
+      if (requestParam) {
+        try {
+          const parsedRequest = JSON.parse(requestParam) as OdRequest;
+          setRequest(parsedRequest);
+          setIsLoading(false);
+          return;
+        } catch (e) {
+          console.error('Error parsing request:', e);
+        }
       }
+
+      // If parsing failed or no requestParam, try to get from cache
+      if (id) {
+        const cachedRequests = queryClient.getQueryData<OdRequest[]>(['odRequests']);
+        if (cachedRequests) {
+          const foundRequest = cachedRequests.find((req: OdRequest) => req.id === id);
+          if (foundRequest) {
+            setRequest(foundRequest);
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+
+      // If we reach this point, wait for the query to complete
+      setIsLoading(true);
+    };
+
+    loadRequest();
+  }, [requestParam, id, queryClient]);
+
+  // Once requests are fetched, find the one we need
+  useEffect(() => {
+    if (requests && id && !request) {
+      const foundRequest = requests.find((req: OdRequest) => req.id === id);
+      if (foundRequest) {
+        setRequest(foundRequest);
+      }
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [requestParam]);
+  }, [requests, id, request]);
 
   const cancelMutation = useMutation({
     mutationFn: cancelRequest,

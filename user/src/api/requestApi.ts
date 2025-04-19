@@ -25,7 +25,7 @@ api.interceptors.request.use(async (config) => {
 export const getStudentRequests = async () => {
   try {
     const response = await api.get('/requests/student');
-    console.log(response.data)
+    // console.log(response.data)
     return response.data.requests;
   } catch (error: any) {
     console.log(error)
@@ -76,9 +76,9 @@ export const createODRequest = async (requestData: {
 // Get request details
 export const getRequestDetails = async (requestId: string) => {
   try {
-    console.log("wsgfdsfgds"+requestId)
+    // console.log("wsgfdsfgds"+requestId)
     const response = await api.get(`/requests/${requestId}`);
-    console.log(response.data)
+    // console.log(response.data)
     return response.data;
   } catch (error: any) {
     console.log(error)
