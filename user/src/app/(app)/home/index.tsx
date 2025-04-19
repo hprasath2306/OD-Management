@@ -14,7 +14,7 @@ import { useAuth } from '../../../context/AuthContext';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { getStudentRequests, getApproverRequests } from '../../../api/requestApi';
+import { getStudentRequests, getApproverRequests, getTeacherRequests } from '../../../api/requestApi';
 import { ApprovalStatus } from '../../../types/request';
 
 // Add interfaces to fix type errors
@@ -43,6 +43,13 @@ export default function HomeScreen() {
     queryKey: [isTeacher ? 'approverRequests' : 'odRequests'],
     queryFn: isTeacher ? getApproverRequests : getStudentRequests
   });
+  
+  // For teachers, also fetch total requests for accurate count
+  const { data: teacherTotalRequests } = useQuery({
+    queryKey: ['teacherTotalRequests'],
+    queryFn: getTeacherRequests,
+    enabled: isTeacher
+  });
 
   // Calculate stats for students
   const getStudentStats = (): StudentStats => {
@@ -70,11 +77,14 @@ export default function HomeScreen() {
   
   // Calculate stats for teachers
   const getTeacherStats = (): TeacherStats => {
-    if (!requests) return { pending: 0, total: 0 };
-    
+    // Pending count from approver requests
+    const pendingCount = requests?.length || 0;
+    // Total count from teacher requests
+    const totalCount = teacherTotalRequests?.length || 0;
+
     return {
-      pending: requests.length, // All requests in the list are pending for teacher
-      total: requests.length,
+      pending: pendingCount,
+      total: totalCount
     };
   };
 
@@ -182,18 +192,19 @@ export default function HomeScreen() {
         <View style={styles.actionsContainer}>
           {isTeacher ? (
             // Teacher Actions
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push('/(app)/approvals/index');
-              }}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: '#4f5b93' }]}>
-                <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-              </View>
-              <Text style={styles.actionText}>View Pending Approvals</Text>
-            </TouchableOpacity>
+            // <TouchableOpacity 
+            //   style={styles.actionButton}
+            //   onPress={() => {
+            //     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            //     router.push('/(app)/approvals/index');
+            //   }}
+            // >
+            //   <View style={[styles.actionIcon, { backgroundColor: '#4f5b93' }]}>
+            //     <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
+            //   </View>
+            //   <Text style={styles.actionText}>View Pending Approvals</Text>
+            // </TouchableOpacity>
+            <></>
           ) : (
             // Student Actions
             <>

@@ -72,9 +72,15 @@ export default function ApprovalDetailScreen() {
   };
 
   const confirmApproval = () => {
-    if (!id || !actionType) return;
+    if (!id || !actionType || !teacherId) {
+      Alert.alert('Error', 'Missing required information for approval');
+      return;
+    }
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    console.log(`Processing approval with teacherId: ${teacherId} and requestId: ${id}`);
+    
     approvalMutation.mutate({
       requestId: id,
       status: actionType,

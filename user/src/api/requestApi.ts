@@ -36,13 +36,41 @@ export const getStudentRequests = async () => {
 // Get all requests pending approval for the teacher
 export const getApproverRequests = async () => {
   try {
+    console.log('Fetching approver requests from /requests/approver...');
     const response = await api.get('/requests/approver');
+    console.log('API Response status:', response.status);
+    console.log('API Response data structure:', Object.keys(response.data));
+    console.log('Requests count:', response.data.requests ? response.data.requests.length : 'No requests property');
+    
+    // If the API doesn't return an array, handle it gracefully
+    if (!response.data.requests) {
+      console.error('Invalid response format:', response.data);
+      return [];
+    }
+    
     return response.data.requests || [];
   } catch (error: any) {
     console.error('Error fetching approver requests:', error);
+    console.error('Error details:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
     throw new Error(error.response?.data?.message || 'Failed to fetch approval requests');
   }
 };
+
+// Get all requests for the teacher
+export const getTeacherRequests = async () => {
+  try {
+    const response = await api.get('/requests/group');
+    return response.data.requests;
+  } catch (error: any) {
+    console.log(error)
+    throw new Error(error.response?.data?.message || 'Failed to fetch teacher requests');
+  }
+};
+
 
 // Process an approval (approve or reject)
 export const processApproval = async (teacherId: string, data: {
@@ -51,15 +79,37 @@ export const processApproval = async (teacherId: string, data: {
   requestId: string;
 }) => {
   try {
+    console.log(`Making approval API call to /requests/${teacherId}/approve with:`, {
+      status: data.status,
+      comments: data.comments ? 'Present' : 'Not provided',
+      requestId: data.requestId
+    });
+    
     const response = await api.post(`/requests/${teacherId}/approve`, {
       status: data.status,
       comments: data.comments,
       requestId: data.requestId
     });
+    
+    console.log('Approval API response:', response.status);
     return response.data;
   } catch (error: any) {
     console.error('Error processing approval:', error);
-    throw new Error(error.response?.data?.message || 'Failed to process approval');
+    console.error('API Error details:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    
+    if (error.response?.status === 403) {
+      throw new Error('You do not have permission to process this approval');
+    } else if (error.response?.status === 404) {
+      throw new Error('Approval step not found');
+    } else if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error('Failed to process approval. Please try again.');
+    }
   }
 };
 
