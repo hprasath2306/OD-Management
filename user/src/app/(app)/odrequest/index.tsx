@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,7 +13,8 @@ import {
   Dimensions,
   Share,
   Platform,
-  ScrollView
+  ScrollView,
+  TextInput
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../../../context/AuthContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function ODRequests() {
   const router = useRouter();
@@ -31,6 +33,15 @@ export default function ODRequests() {
   const [selectedRequest, setSelectedRequest] = useState<OdRequest | null>(null);
   const [cardVisible, setCardVisible] = useState(false);
   const viewShotRef = useRef<ViewShot>(null);
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [filteredRequests, setFilteredRequests] = useState<OdRequest[] | null>(null);
   
   const { 
     data: requests, 
@@ -42,6 +53,91 @@ export default function ODRequests() {
     queryKey: ['odRequests'],
     queryFn: getStudentRequests
   });
+
+  // Apply filters to requests
+  useEffect(() => {
+    if (!requests) {
+      setFilteredRequests(null);
+      return;
+    }
+
+    // Create a copy of requests to avoid modifying the original
+    let result = [...requests];
+    
+    // Sort requests by the most recent date first (based on start date)
+    result.sort((a, b) => {
+      const dateA = new Date(a.startDate).getTime();
+      const dateB = new Date(b.startDate).getTime();
+      return dateB - dateA;  // Most recent first
+    });
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (req) => 
+          (req.reason && req.reason.toLowerCase().includes(query)) ||
+          (req.type && req.type.toLowerCase().includes(query)) ||
+          (req.category && req.category.toLowerCase().includes(query)) ||
+          (req.description && req.description.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply date filters
+    if (startDate) {
+      const start = startDate.setHours(0, 0, 0, 0);
+      result = result.filter(req => {
+        const reqDate = new Date(req.startDate).setHours(0, 0, 0, 0);
+        return reqDate >= start;
+      });
+    }
+
+    if (endDate) {
+      const end = endDate.setHours(23, 59, 59, 999);
+      result = result.filter(req => {
+        const reqDate = new Date(req.endDate).setHours(0, 0, 0, 0);
+        return reqDate <= end;
+      });
+    }
+
+    setFilteredRequests(result);
+  }, [requests, searchQuery, startDate, endDate]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStartDate(null);
+    setEndDate(null);
+    setIsFilterVisible(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  // Date picker handlers
+  const onStartDateChange = (event: any, selectedDate?: Date) => {
+    setShowStartDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setStartDate(selectedDate);
+    }
+  };
+
+  const onEndDateChange = (event: any, selectedDate?: Date) => {
+    setShowEndDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setEndDate(selectedDate);
+    }
+  };
+
+  const openStartDatePicker = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowStartDatePicker(true);
+  };
+
+  const openEndDatePicker = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowEndDatePicker(true);
+  };
 
   const getStatusColor = (status: ApprovalStatus) => {
     switch (status) {
@@ -290,8 +386,99 @@ export default function ODRequests() {
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>OD Requests</Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setIsFilterVisible(!isFilterVisible);
+            }}
+          >
+            <Ionicons name="options-outline" size={24} color="#333" />
+          </TouchableOpacity>
         </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={20} color="#666" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by reason, type, category..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
+          />
+          {searchQuery ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery('');
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Ionicons name="close-circle" size={20} color="#666" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
+      {/* Date Filters */}
+      {isFilterVisible && (
+        <View style={styles.filterContainer}>
+          <Text style={styles.filterTitle}>Filter by Date</Text>
+          
+          <View style={styles.dateFilterRow}>
+            <TouchableOpacity 
+              style={styles.dateFilterButton}
+              onPress={openStartDatePicker}
+            >
+              <Ionicons name="calendar-outline" size={18} color="#4f5b93" />
+              <Text style={styles.dateButtonText}>
+                {startDate ? formatDate(startDate) : "Start Date"}
+              </Text>
+            </TouchableOpacity>
+            
+            <View style={styles.dateFilterSeparator}>
+              <Text style={styles.dateFilterSeparatorText}>to</Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.dateFilterButton}
+              onPress={openEndDatePicker}
+            >
+              <Ionicons name="calendar-outline" size={18} color="#4f5b93" />
+              <Text style={styles.dateButtonText}>
+                {endDate ? formatDate(endDate) : "End Date"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.clearFilterButton}
+            onPress={clearFilters}
+          >
+            <Ionicons name="refresh-outline" size={18} color="#fff" />
+            <Text style={styles.clearFilterText}>Clear Filters</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={startDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={onStartDateChange}
+        />
+      )}
+
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={endDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={onEndDateChange}
+        />
+      )}
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -301,20 +488,48 @@ export default function ODRequests() {
       ) : (
         <>
           {requests && requests.length > 0 ? (
-            <FlatList
-              data={requests.reverse()}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContainer}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefetching}
-                  onRefresh={refetch}
-                  colors={['#6200ee']}
-                  tintColor="#6200ee"
-                />
-              }
-            />
+            <>
+              <FlatList
+                data={filteredRequests || requests}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContainer}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefetching}
+                    onRefresh={refetch}
+                    colors={['#6200ee']}
+                    tintColor="#6200ee"
+                  />
+                }
+                ListEmptyComponent={
+                  <View style={styles.noResultsContainer}>
+                    <Ionicons name="search" size={64} color="#ccc" />
+                    <Text style={styles.noResultsText}>No matching requests found</Text>
+                    <TouchableOpacity
+                      style={styles.clearSearchButton}
+                      onPress={clearFilters}
+                    >
+                      <Ionicons name="refresh-outline" size={16} color="#fff" style={{marginRight: 4}} />
+                      <Text style={styles.clearSearchText}>Clear Search & Filters</Text>
+                    </TouchableOpacity>
+                  </View>
+                }
+              />
+              {filteredRequests && (
+                <View style={styles.resultsCountContainer}>
+                  {filteredRequests.length > 0 ? (
+                    <Text style={styles.resultsCountText}>
+                      Showing {filteredRequests.length} of {requests.length} requests • Most recent first
+                    </Text>
+                  ) : (
+                    <Text style={[styles.resultsCountText, {color: '#ff5722'}]}>
+                      No requests match your search criteria
+                    </Text>
+                  )}
+                </View>
+              )}
+            </>
           ) : (
             <View style={styles.emptyContainer}>
               <Ionicons name="document-text-outline" size={80} color="#ccc" />
@@ -734,5 +949,138 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 8,
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  searchContainer: {
+    padding: 16,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  searchInput: {
+    flex: 1,
+    padding: 8,
+    fontSize: 15,
+    color: '#333',
+  },
+  filterContainer: {
+    padding: 16,
+    backgroundColor: '#fff',
+    margin: 16,
+    marginTop: 0,
+    borderRadius: 12,
+    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  dateFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  dateFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+  },
+  dateFilterSeparator: {
+    width: 40,
+    alignItems: 'center',
+  },
+  dateFilterSeparatorText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  dateButtonText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 8,
+  },
+  clearFilterButton: {
+    backgroundColor: '#4f5b93',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  clearFilterText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    margin: 16,
+    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  noResultsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  clearSearchButton: {
+    backgroundColor: '#4f5b93',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  clearSearchText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  resultsCountContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F0F3F8',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  resultsCountText: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
   },
 }); 
