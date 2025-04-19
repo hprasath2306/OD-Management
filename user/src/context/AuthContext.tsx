@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { router } from 'expo-router';
 import * as authApi from '../api/authApi';
+import { Alert } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 type User = {
   id: string;
@@ -55,8 +57,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authApi.login(email, password);
       
       // If we're just checking the role (for admin validation), return the response
-      if (checkOnly) {
-        return response;
+      if (response?.user?.role === 'ADMIN') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          'Admin Access Restricted',
+          'Admin users should use the website for full functionality. This mobile app is for students only.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reset the form
+                
+              }
+            }
+          ]
+        );
+        return;
       }
       
       // Otherwise set the user and proceed with navigation

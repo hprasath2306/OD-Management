@@ -120,7 +120,7 @@ export default function ProfileScreen() {
             </View>
           </View>
           <Text style={styles.userName}>{user?.email}</Text>
-          <Text style={styles.userRole}>Student</Text>
+          <Text style={styles.userRole}>{user?.role}</Text>
         </View>
 
         <View style={styles.infoSection}>

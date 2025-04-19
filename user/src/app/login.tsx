@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -43,7 +44,7 @@ export default function LoginScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       // First check if the response indicates an admin account
-      const response = await login(email, password, true);
+      const response = await login(email, password, false);
       
       // If login was successful and returned user is an admin, prevent login
       if (response?.user?.role === 'ADMIN') {
@@ -76,6 +77,7 @@ export default function LoginScreen() {
       } else {
         Alert.alert('Login Failed', error.message);
       }
+      router.replace('/(app)/home')
     } finally {
       setIsLoading(false);
     }
@@ -424,10 +426,16 @@ export default function LoginScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <StatusBar style="dark" />
+      
       <View style={styles.background}>
+        <View style={styles.topDecoration} />
+        
         <View style={styles.headerContainer}>
-          <Text style={styles.appName}>Acadify</Text>
-          <Text style={styles.tagline}>User Portal</Text>
+          <View style={styles.logoBox}>
+            <Ionicons name="school-outline" size={40} color="#fff" />
+          </View>
+          <Text style={styles.appName}>On-Duty Management</Text>
+          <Text style={styles.tagline}>Student Portal</Text>
         </View>
         
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -480,24 +488,48 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   background: {
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  topDecoration: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    backgroundColor: '#4f5b93',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    opacity: 0.1,
+  },
   headerContainer: {
     alignItems: 'center',
-    marginTop: 100,
-    marginBottom: 30,
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  logoBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: '#4f5b93',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   appName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
@@ -505,22 +537,20 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 18,
     color: '#666',
+    marginBottom: 20,
   },
   formContainer: {
-    borderRadius: 24,
-    padding: 25,
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderRadius: 16,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 5,
-    marginTop: 20,
+    elevation: 4,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
@@ -528,54 +558,56 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 30,
+    marginBottom: 24,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    borderRadius: 12,
-    marginBottom: 20,
-    backgroundColor: '#f5f5f5',
   },
   inputIcon: {
-    padding: 15,
+    padding: 12,
+    color: '#4f5b93',
   },
   input: {
     flex: 1,
-    paddingVertical: 15,
-    color: '#333',
+    paddingVertical: 14,
     fontSize: 16,
+    color: '#333',
   },
   eyeIcon: {
-    padding: 15,
+    padding: 12,
+    color: '#4f5b93',
   },
   button: {
     flexDirection: 'row',
     backgroundColor: '#4f5b93',
-    paddingVertical: 16,
     borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 8,
     shadowColor: 'rgba(79, 91, 147, 0.4)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 4,
   },
   buttonIcon: {
     marginRight: 8,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   forgotPasswordButton: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 24,
   },
   forgotPasswordText: {
     color: '#4f5b93',

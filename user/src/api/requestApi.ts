@@ -33,6 +33,36 @@ export const getStudentRequests = async () => {
   }
 };
 
+// Get all requests pending approval for the teacher
+export const getApproverRequests = async () => {
+  try {
+    const response = await api.get('/requests/approver');
+    return response.data.requests || [];
+  } catch (error: any) {
+    console.error('Error fetching approver requests:', error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch approval requests');
+  }
+};
+
+// Process an approval (approve or reject)
+export const processApproval = async (teacherId: string, data: {
+  status: 'APPROVED' | 'REJECTED';
+  comments?: string;
+  requestId: string;
+}) => {
+  try {
+    const response = await api.post(`/requests/${teacherId}/approve`, {
+      status: data.status,
+      comments: data.comments,
+      requestId: data.requestId
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error processing approval:', error);
+    throw new Error(error.response?.data?.message || 'Failed to process approval');
+  }
+};
+
 // Get all labs
 export const getAllLabs = async () => {
   try {

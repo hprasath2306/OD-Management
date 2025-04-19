@@ -5,7 +5,9 @@ import { Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const isTeacher = user?.role === 'TEACHER';
+  const isStudent = user?.role === 'STUDENT';
 
   // Check authentication, show loading while checking
   if (isLoading) {
@@ -50,20 +52,38 @@ export default function AppLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="odrequest/index"
-        options={{
-          title: 'OD Requests',
-          tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile/index"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={22} color={color} />,
-        }}
-      />
+
+      {isTeacher ? (
+        // Teacher-specific tabs
+        <Tabs.Screen
+          name="approvals/index"
+          options={{
+            title: 'Approvals',
+            tabBarIcon: ({ color }) => <Ionicons name="checkmark-circle-outline" size={22} color={color} />,
+          }}
+        />
+      ) : ""}
+
+      {isTeacher ? (
+        <Tabs.Screen 
+           name='odrequest/index'
+           options={{
+            href: null,
+           }}
+        />
+      ):""
+      }
+
+      {isStudent ? (
+        <Tabs.Screen
+          name="approvals/index"
+          options={{
+            href: null,
+          }}
+        />
+      ) : ""}
+
+      {/* Hidden screens for navigation */}
       <Tabs.Screen
         name="odrequest/create"
         options={{
@@ -79,6 +99,27 @@ export default function AppLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="approvals/[id]"
+        options={{
+          title: 'Approval Details',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="profile/index"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={22} color={color} />,
+        }}
+      />
+      {/* <Tabs.Screen
+        name="approvals/index"
+        options={{
+          title: 'Approvals',
+          href: null,
+        }}
+      /> */}
     </Tabs>
   );
 } 
