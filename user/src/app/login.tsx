@@ -227,7 +227,7 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               numberOfLines={1}
-              ellipsizeMode="tail"
+              // ellipsizeMode="tail"
               editable={false}
             />
           </View>
@@ -273,7 +273,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 numberOfLines={1}
-                ellipsizeMode="tail"
+                // ellipsizeMode="tail"
               />
             </View>
             <TouchableOpacity
@@ -382,7 +382,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 numberOfLines={1}
-                ellipsizeMode="tail"
+                // ellipsizeMode="tail"
               />
             </View>
             <View style={styles.inputContainer}>
