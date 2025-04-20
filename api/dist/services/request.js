@@ -50,6 +50,7 @@ export class RequestService {
                     labId: data.labId,
                     requestedById: data.requestedById,
                     flowTemplateId: flowTemplate.id,
+                    proofOfOD: data.proofOfOD,
                     // status: ApprovalStatus.PENDING,
                 },
             });
@@ -385,7 +386,9 @@ export class RequestService {
                     role: request.FlowTemplate?.steps.find((s) => s.sequence === step.sequence)?.role,
                 },
                 // Add previous approval steps with comments
-                previousSteps: previousSteps
+                previousSteps: previousSteps,
+                // Include proof of OD document URL if it exists
+                proofOfOD: request.proofOfOD || null
             };
         });
     }

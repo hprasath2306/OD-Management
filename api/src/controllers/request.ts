@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { requestService } from "../services/request.js";
-import { UserRole } from "@prisma/client";
+import { UserRole, ApprovalStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export class RequestController {
   // Create a new request
@@ -106,8 +109,235 @@ export class RequestController {
     }
   }
   
+  // Get a specific request by ID
+  async getRequestById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      
+      const request = await prisma.request.findUnique({
+        where: { id },
+        include: {
+          students: {
+            include: {
+              student: {
+                include: { user: true, group: true },
+              },
+            },
+          },
+          lab: true,
+          requestedBy: true,
+          FlowTemplate: {
+            include: { steps: true },
+          },
+          Approvals: {
+            include: {
+              approvalSteps: {
+                include: {
+                  User: true
+                }
+              },
+              group: true,
+            },
+          },
+        },
+      });
 
+      if (!request) {
+        res.status(404).json({ error: 'Request not found' });
+        return;
+      }
 
+      // Format the response
+      const formattedRequest = {
+        id: request.id,
+        type: request.type,
+        category: request.category,
+        needsLab: request.needsLab,
+        reason: request.reason,
+        description: request.description,
+        startDate: request.startDate,
+        endDate: request.endDate,
+        proofOfOD: request.proofOfOD, // Include proof of OD document URL
+        lab: request.lab ? { id: request.lab.id, name: request.lab.name } : null,
+        requestedBy: {
+          id: request.requestedBy.id,
+          name: request.requestedBy.name,
+          email: request.requestedBy.email,
+        },
+        students: request.students.map(rs => ({
+          id: rs.student.id,
+          rollNo: rs.student.rollNo,
+          regNo: rs.student.regNo,
+          name: rs.student.user.name,
+          group: rs.student.group ? {
+            id: rs.student.group.id, 
+            name: rs.student.group.name,
+            section: rs.student.group.section,
+            batch: rs.student.group.batch
+          } : null,
+        })),
+        approvals: request.Approvals.map(approval => ({
+          id: approval.id,
+          groupId: approval.groupId,
+          groupName: approval.group.name,
+          status: approval.status,
+          currentStepIndex: approval.currentStepIndex,
+          steps: approval.approvalSteps.map(step => ({
+            sequence: step.sequence,
+            status: step.status,
+            comments: step.comments,
+            approvedAt: step.approvedAt,
+            approver: step.User ? {
+              id: step.User.id,
+              name: step.User.name,
+              email: step.User.email
+            } : null,
+          })),
+        })),
+      };
+
+      res.json(formattedRequest);
+    } catch (error: any) {
+      console.error(`Error fetching request: ${error.message}`);
+      res.status(500).json({ error: 'Failed to fetch request details' });
+    }
+  }
+
+  // Get request details with previous steps for approval view
+  async getRequestDetailById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      
+      console.log(`Fetching detailed request with ID: ${id}`);
+      
+      const request = await prisma.request.findUnique({
+        where: { id },
+        include: {
+          students: {
+            include: {
+              student: {
+                include: { user: true, group: true },
+              },
+            },
+          },
+          lab: true,
+          requestedBy: true,
+          FlowTemplate: {
+            include: { steps: true },
+          },
+          Approvals: {
+            include: {
+              approvalSteps: {
+                include: {
+                  User: true
+                },
+                orderBy: {
+                  sequence: 'asc'
+                }
+              },
+              group: true,
+            },
+          },
+        },
+      });
+
+      if (!request) {
+        res.status(404).json({ error: 'Request not found' });
+        return;
+      }
+
+      // Find the specific approval where the current user is an approver
+      const userApprovalStep = res.locals.user.role === UserRole.TEACHER
+        ? request.Approvals.flatMap(a => a.approvalSteps).find(
+            step => step.userId === res.locals.user.id && step.status === ApprovalStatus.PENDING
+          )
+        : null;
+
+      const approverGroupId = userApprovalStep?.groupId;
+      
+      // Find the approval that contains this step
+      let approval = null;
+      if (userApprovalStep) {
+        approval = request.Approvals.find(a => 
+          a.approvalSteps.some(step => step.id === userApprovalStep.id)
+        );
+      }
+      
+      // Get all previous steps for this approval
+      const previousSteps = userApprovalStep
+        ? request.Approvals
+            .find(a => a.groupId === approverGroupId)
+            ?.approvalSteps
+            .filter(s => s.sequence < userApprovalStep.sequence)
+            .map(s => ({
+              sequence: s.sequence,
+              status: s.status,
+              comments: s.comments,
+              approvedAt: s.approvedAt,
+              approver: s.User ? {
+                id: s.User.id,
+                name: s.User.name,
+                email: s.User.email,
+                role: s.User.role
+              } : null,
+              role: request.FlowTemplate?.steps.find(fs => fs.sequence === s.sequence)?.role
+            }))
+        : [];
+
+      // Get students for the group if it exists
+      const groupStudents = approverGroupId
+        ? request.students.filter(rs => rs.student.groupId === approverGroupId)
+        : request.students;
+
+      // Format the response
+      const formattedRequest = {
+        requestId: request.id,
+        type: request.type,
+        category: request.category,
+        needsLab: request.needsLab,
+        reason: request.reason,
+        description: request.description,
+        startDate: request.startDate,
+        endDate: request.endDate,
+        proofOfOD: request.proofOfOD, // Include proof of OD document URL
+        lab: request.lab
+          ? {
+              id: request.lab.id,
+              name: request.lab.name,
+            }
+          : null,
+        submittedBy: {
+          id: request.requestedBy.id,
+          name: request.requestedBy.name,
+          email: request.requestedBy.email,
+        },
+        students: groupStudents.map(rs => ({
+          id: rs.student.id,
+          rollNo: rs.student.rollNo,
+          regNo: rs.student.regNo,
+          attendancePercentage: rs.student.attendancePercentage,
+          name: rs.student.user.name,
+          group: rs.student.group ? {
+            id: rs.student.group.id,
+            name: rs.student.group.name,
+            section: rs.student.group.section,
+            batch: rs.student.group.batch
+          } : null
+        })),
+        approvalStatus: approval?.status || null,
+        currentStep: userApprovalStep ? {
+          sequence: userApprovalStep.sequence,
+          role: request.FlowTemplate?.steps.find(s => s.sequence === userApprovalStep.sequence)?.role,
+        } : null,
+        previousSteps: previousSteps || []
+      };
+
+      res.json(formattedRequest);
+    } catch (error: any) {
+      console.error(`Error fetching detailed request: ${error.message}`);
+      res.status(500).json({ error: 'Failed to fetch request details' });
+    }
+  }
 }
 
 export const requestController = new RequestController(); 

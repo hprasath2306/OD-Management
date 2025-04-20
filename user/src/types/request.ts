@@ -81,4 +81,5 @@ export interface OdRequest {
   lab?: Lab;
   students: RequestStudent[];
   approvals: Approval[];
+  proofOfOD?: string;
 } 

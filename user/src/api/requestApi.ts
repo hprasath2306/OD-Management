@@ -2,8 +2,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RequestType, ODCategory } from '../types/request';
 
-// const BASE_URL = 'http://10.0.2.2:3000/api';
-const BASE_URL = 'https://od-management-7t72.onrender.com/api';
+const BASE_URL = 'http://10.0.2.2:3000/api';
+// const BASE_URL = 'https://od-management-7t72.onrender.com/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -144,6 +144,7 @@ export const createODRequest = async (requestData: {
   endDate: Date;
   labId?: string;
   students: string[];
+  proofOfOD?: string;
 }) => {
   try {
     const response = await api.post('/requests', requestData);
@@ -167,6 +168,19 @@ export const getRequestDetails = async (requestId: string) => {
   }
 };
 
+// Get a single request by ID (especially for proof documents)
+export const getRequestById = async (requestId: string) => {
+  try {
+    console.log(`Fetching specific request with ID: ${requestId}`);
+    const response = await api.get(`/requests/${requestId}/detail`);
+    console.log('Request detail response:', response.status);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching request by ID:', error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch request details');
+  }
+};
+
 // Cancel a request
 export const cancelRequest = async (requestId: string) => {
   try {
@@ -181,30 +195,52 @@ export const cancelRequest = async (requestId: string) => {
 export const getApprovalDetail = async (requestId: string, teacherId: string) => {
   try {
     console.log(`Fetching approval detail for requestId: ${requestId}, teacherId: ${teacherId}`);
-    // We'll use the existing approver endpoint since it already includes the previousSteps
-    const response = await api.get('/requests/approver');
     
-    if (!response.data.requests) {
+    // Use our new dedicated endpoint to get request details with approval info
+    const response = await api.get(`/requests/${requestId}/detail`);
+    
+    if (!response.data) {
       console.error('Invalid response format:', response.data);
       throw new Error('Failed to fetch approval details');
     }
     
-    // Find the specific request we're looking for
-    const request = response.data.requests.find((req: any) => req.requestId === requestId);
+    console.log(`Successfully fetched request details for ${requestId}, proofOfOD included:`, 
+      response.data.proofOfOD ? 'Yes' : 'No');
     
-    if (!request) {
-      console.error('Request not found in response');
-      throw new Error('Approval request not found');
-    }
-    
-    console.log(`Found request with ID ${requestId}, has previousSteps: ${Boolean(request.previousSteps)}`);
-    if (request.previousSteps) {
-      console.log(`Number of previous steps: ${request.previousSteps.length}`);
-    }
-    
-    return request;
+    return response.data;
   } catch (error: any) {
     console.error('Error fetching approval detail:', error);
     throw new Error(error.response?.data?.message || 'Failed to fetch approval details');
   }
-}; 
+};
+
+// Upload proof of OD directly (without a specific request)
+export const uploadProofDirectly = async (imageBase64: string) => {
+  try {
+    const response = await api.post('/upload/direct', { image: imageBase64 });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error uploading image:', error);
+    throw new Error(error.response?.data?.error || 'Failed to upload image');
+  }
+};
+
+// Upload proof of OD
+export const uploadProofOfOD = async (file: string) => {
+  try {
+    const response = await api.post(`/upload/direct`, { file });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error || 'Failed to upload proof of OD');
+  }
+};
+
+// Get proof of OD
+export const getProofOfOD = async (requestId: string) => {
+  try {
+    const response = await api.get(`/upload/${requestId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error || 'Failed to get proof of OD');
+  }
+};

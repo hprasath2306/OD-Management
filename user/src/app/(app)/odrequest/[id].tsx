@@ -8,12 +8,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { cancelRequest, getStudentRequests } from '../../../api/requestApi';
+import { cancelRequest, getStudentRequests, getRequestById } from '../../../api/requestApi';
 import { ApprovalStatus, OdRequest } from '../../../types/request';
 import * as Haptics from 'expo-haptics';
 
@@ -23,12 +25,29 @@ export default function RequestDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [showProofModal, setShowProofModal] = useState(false);
 
   // Query to fetch requests if needed
   const { data: requests } = useQuery({
     queryKey: ['odRequests'],
     queryFn: getStudentRequests,
     enabled: !request && !!id, // Only run this query if we don't have the request and have an ID
+  });
+
+  // Fetch the specific request by ID to get the proof document
+  const { data: requestDetail } = useQuery({
+    queryKey: ['requestDetail', id],
+    queryFn: () => getRequestById(id || ''),
+    enabled: !!id,
+    onSuccess: (data) => {
+      // If we get the request detail with proofOfOD, update our request state
+      if (data && data.proofOfOD) {
+        setRequest(prevRequest => prevRequest ? {
+          ...prevRequest,
+          proofOfOD: data.proofOfOD
+        } : data);
+      }
+    }
   });
 
   // Parse the request from params
@@ -391,77 +410,58 @@ export default function RequestDetailScreen() {
           )}
         </View>
         
-        {/* Approval Details */}
-        {/* <View style={styles.detailCard}>
-          <Text style={styles.sectionTitle}>Approval Details</Text>
-          
-          {request.approvals && request.approvals.length > 0 ? (
-            request.approvals.map((approval: any) => (
-              <View key={approval.groupId} style={styles.approvalItem}>
-                <View style={styles.approvalHeader}>
-                  <Text style={styles.approvalTitle}>
-                    {approval.groupName}
-                  </Text>
-                  <View
-                    style={[
-                      styles.approvalStatusBadge,
-                      { backgroundColor: getStatusColor(approval.status) },
-                    ]}
-                  >
-                    <Text style={styles.approvalStatusText}>
-                      {approval.status}
-                    </Text>
-                  </View>
-                </View>
-                
-                {approval.steps && (
-                  <View style={styles.stepsContainer}>
-                    {approval.steps.map((step: any, index: number) => {
-                      // @ts-ignore
-                      const flowStep = findStepBySequence(request.flowTemplate, step.sequence);
-                      return (
-                        <View key={`step-${step.sequence}-${index}`} style={styles.approvalStep}>
-                          <View
-                            style={[
-                              styles.stepIndicator,
-                              {
-                                backgroundColor:
-                                  step.status === ApprovalStatus.PENDING
-                                    ? '#FF9800'
-                                    : step.status === ApprovalStatus.APPROVED
-                                    ? '#4CAF50'
-                                    : '#F44336',
-                              },
-                            ]}
-                          />
-                          <View style={styles.stepContent}>
-                            <Text style={styles.stepTitle}>
-                              {flowStep ? flowStep.role : `Step ${index + 1}`}
-                            </Text>
-                            <Text style={styles.stepStatus}>{step.status}</Text>
-                            {step.approvedAt && (
-                              <Text style={styles.stepTimestamp}>
-                                {new Date(step.approvedAt).toLocaleString()}
-                              </Text>
-                            )}
-                            {step.comments && (
-                              <Text style={styles.stepComments}>
-                                Comments: {step.comments}
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
+        {/* Proof of OD Card */}
+        {(request.proofOfOD || (requestDetail && requestDetail.proofOfOD)) && (
+          <View style={styles.detailCard}>
+            <Text style={styles.sectionTitle}>Supporting Document</Text>
+            
+            <TouchableOpacity 
+              style={styles.proofContainer}
+              onPress={() => setShowProofModal(true)}
+            >
+              <Image 
+                source={{ uri: request.proofOfOD || requestDetail?.proofOfOD }} 
+                style={styles.proofThumbnail}
+                resizeMode="cover"
+              />
+              <View style={styles.proofInfo}>
+                <Text style={styles.proofText}>View Supporting Document</Text>
+                <Ionicons name="eye-outline" size={20} color="#6200ee" />
               </View>
-            ))
-          ) : (
-            <Text style={styles.noApprovals}>No approval information available</Text>
-          )}
-        </View> */}
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
+
+      {/* Proof Image Modal */}
+      <Modal
+        visible={showProofModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowProofModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Supporting Document</Text>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowProofModal(false)}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.modalContent}>
+            {(request.proofOfOD || requestDetail?.proofOfOD) && (
+              <Image 
+                source={{ uri: request.proofOfOD || requestDetail?.proofOfOD }} 
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -816,5 +816,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginHorizontal: 8,
+  },
+  proofContainer: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  proofThumbnail: {
+    width: 80,
+    height: 80,
+  },
+  proofInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  proofText: {
+    fontSize: 16,
+    color: '#6200ee',
+    fontWeight: '500',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '80%',
   },
 }); 

@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
   Modal,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ export default function ApprovalDetailScreen() {
   const [comments, setComments] = useState('');
   const [approvalModalVisible, setApprovalModalVisible] = useState(false);
   const [actionType, setActionType] = useState<'APPROVED' | 'REJECTED' | null>(null);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -54,7 +56,7 @@ export default function ApprovalDetailScreen() {
       console.log('Keys in request object:', Object.keys(request));
       console.log('previousSteps field exists:', request.hasOwnProperty('previousSteps'));
       console.log('previousSteps value:', request.previousSteps);
-      console.log('Complete request object:', JSON.stringify(request).slice(0, 500) + '...');
+      console.log('Complete request object:', JSON.stringify(request) + '...');
       console.log('=========================================');
     }
   }, [request, requestDetail]);
@@ -379,6 +381,31 @@ export default function ApprovalDetailScreen() {
           </View>
         )}
 
+        {/* Supporting Document Section */}
+        {request.proofOfOD && (
+          <View style={styles.detailCard}>
+            <Text style={styles.sectionTitle}>Supporting Document</Text>
+            
+            <TouchableOpacity 
+              style={styles.proofContainer}
+              onPress={() => {
+                // Open modal to view full image
+                setImageModalVisible(true);
+              }}
+            >
+              <Image 
+                source={{ uri: request.proofOfOD }} 
+                style={styles.proofThumbnail}
+                resizeMode="cover"
+              />
+              <View style={styles.proofInfo}>
+                <Text style={styles.proofText}>View Supporting Document</Text>
+                <Ionicons name="eye-outline" size={20} color="#4f5b93" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Approval Actions */}
         <View style={styles.actionCard}>
           <Text style={styles.sectionTitle}>Approval Action</Text>
@@ -408,11 +435,41 @@ export default function ApprovalDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Approval Confirmation Modal */}
+      {/* Add Image View Modal */}
       <Modal
-        animationType="slide"
+        visible={imageModalVisible}
         transparent={true}
+        animationType="fade"
+        onRequestClose={() => setImageModalVisible(false)}
+      >
+        <View style={styles.imageModalContainer}>
+          <View style={styles.imageModalHeader}>
+            <Text style={styles.modalImageTitle}>Supporting Document</Text>
+            <TouchableOpacity 
+              style={styles.imageCloseButton}
+              onPress={() => setImageModalVisible(false)}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.modalImageContent}>
+            {request.proofOfOD && (
+              <Image 
+                source={{ uri: request.proofOfOD }} 
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Existing Approval Modal */}
+      <Modal
         visible={approvalModalVisible}
+        transparent={true}
+        animationType="slide"
         onRequestClose={() => setApprovalModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -870,5 +927,58 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 8,
     flex: 1,
+  },
+  proofContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  proofThumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 4,
+  },
+  proofInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flex: 1,
+    paddingHorizontal: 12,
+  },
+  proofText: {
+    fontSize: 15,
+    color: '#4f5b93',
+    fontWeight: '500',
+  },
+  imageModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+  },
+  imageModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 50,
+  },
+  modalImageTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  imageCloseButton: {
+    padding: 8,
+  },
+  modalImageContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '90%',
+    height: '80%',
   },
 }); 

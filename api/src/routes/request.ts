@@ -9,54 +9,29 @@ import { authMiddleware } from "../middleware/auth.js";
 
 const router = Router();
 
-// Create a new request (Students only)
-router.post(
-  "/",
-  authMiddleware,
-  authorize([UserRole.STUDENT]),
-  validateResource(createRequestSchema),
-  requestController.createRequest
-);
+// Create a new request
+router.post('/', authMiddleware, requestController.createRequest.bind(requestController));
 
-// Process an approval step (Teachers only)
-router.post(
-  "/:id/approve",
-  authMiddleware,
-  authorize([UserRole.TEACHER]),
-  validateResource(processApprovalSchema),
-  requestController.processApprovalStep
-);
+// Process an approval step
+router.post('/:id/approve', authMiddleware, requestController.processApprovalStep.bind(requestController));
 
-// Get requests for approver (Teachers only)
-router.get(
-  "/approver",
-  authMiddleware,
-  authorize([UserRole.TEACHER]),
-  requestController.getApproverRequests
-);
+// Get requests for approver
+router.get('/approver', authMiddleware, requestController.getApproverRequests.bind(requestController));
 
-// Get student's requests (Students only)
-router.get(
-  "/student",
-  authMiddleware,
-  authorize([UserRole.STUDENT]),
-  requestController.getStudentRequests
-);
+// Get requests for student
+router.get('/student', authMiddleware, requestController.getStudentRequests.bind(requestController));
 
-router.get(
-  "/",
-  authMiddleware,
-  authorize([UserRole.ADMIN]),
-  requestController.getAllRequests
-);
+// Get all requests (admin only)
+router.get('/', authMiddleware, requestController.getAllRequests.bind(requestController));
 
-router.get(
-  "/group",
-  authMiddleware,
-  authorize([UserRole.TEACHER]),
-  requestController.getGroupRequests
-);
+// Get requests for a group (filtered by role)
+router.get('/group', authMiddleware, requestController.getGroupRequests.bind(requestController));
 
+// Get a specific request by ID - should be after other specific routes to avoid conflicts
+router.get('/:id', authMiddleware, requestController.getRequestById.bind(requestController));
+
+// Get request details specifically for approvals (includes proof document)
+router.get('/:id/detail', authMiddleware, requestController.getRequestDetailById.bind(requestController));
 
 // Get all requests (Authenticated users)
 // Can filter by studentId, groupId, and status using query params

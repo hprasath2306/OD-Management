@@ -12,6 +12,7 @@ import labRoutes from "./routes/lab.js";
 import flowTemplateRoutes from "./routes/flowTemplate.js";
 import flowStepRoutes from "./routes/flowStep.js";
 import requestRoutes from "./routes/request.js";
+import uploadRoutes from "./routes/upload.js";
 
 const app = express();
 app.use(
@@ -39,6 +40,8 @@ app.use("/api/lab", labRoutes);
 app.use("/api/flow-templates", flowTemplateRoutes);
 app.use("/api/flow-steps", flowStepRoutes);
 app.use("/api/requests", requestRoutes);
+
+app.use("/api/upload", uploadRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is runnig");

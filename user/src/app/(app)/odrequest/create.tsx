@@ -15,17 +15,27 @@ import {
   Modal,
   FlatList,
   ImageBackground,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation } from '@tanstack/react-query';
-import { createODRequest, getAllLabs, getAllStudents } from '../../../api/requestApi';
+import { 
+  createODRequest, 
+  getAllLabs, 
+  getAllStudents, 
+  uploadProofOfOD,
+  uploadProofDirectly 
+} from '../../../api/requestApi';
 import { RequestType, ODCategory } from '../../../types/request';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { Stack } from 'expo-router';
 
 // Simple type definitions for labs and students
 type Lab = {
@@ -71,6 +81,16 @@ export default function CreateODRequest() {
   const [isLoadingLabs, setIsLoadingLabs] = useState(false);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   
+  // New state for file upload
+  const [proofImage, setProofImage] = useState<string | null>(null);
+  const [proofFileName, setProofFileName] = useState<string | null>(null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  
+  // Get user token for authentication
+  const [userToken, setUserToken] = useState<string | null>(null);
+  
   // Load available labs and students
   useEffect(() => {
     const loadLabs = async () => {
@@ -109,6 +129,22 @@ export default function CreateODRequest() {
     loadStudents();
   }, [user?.id]);
 
+  // Get user token for authentication
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        // This is a placeholder. Replace with your actual token retrieval logic
+        // For example: const token = await AsyncStorage.getItem('userToken');
+        const token = "your-auth-token"; // Replace with actual token retrieval
+        setUserToken(token);
+      } catch (error) {
+        console.error('Error fetching token:', error);
+      }
+    };
+    
+    fetchToken();
+  }, []);
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       day: '2-digit',
@@ -117,35 +153,96 @@ export default function CreateODRequest() {
     });
   };
 
+  // Pick image from library
+  const pickImage = async () => {
+    try {
+      // Reset any previous upload states
+      setUploadError(null);
+      
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to upload an image.');
+        return;
+      }
+      
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: true,
+      });
+      
+      if (!result.canceled && result.assets && result.assets[0].base64) {
+        setProofImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+        setProofFileName(result.assets[0].fileName || 'image.jpg');
+        // Reset URL if selecting a new image
+        setProofUrl(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  // Upload image directly to server
+  const handleUploadProof = async () => {
+    if (!proofImage) {
+      setUploadError('No image selected');
+      return;
+    }
+
+    setIsUploadingProof(true);
+    setUploadError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    try {
+      // Generate a temporary ID for the upload
+      const tempId = 'temp-' + Date.now();
+      const result = await uploadProofDirectly(proofImage);
+      console.log(result);
+      
+      if (result && result.proofUrl) {
+        setProofUrl(result.proofUrl);
+        Alert.alert('Success', 'Proof uploaded successfully');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Error uploading proof:', error);
+      setUploadError(`Error uploading proof: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsUploadingProof(false);
+    }
+  };
+
+  // Remove selected image
+  const removeImage = () => {
+    setProofImage(null);
+    setProofFileName(null);
+    setProofUrl(null);
+    setUploadError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
   const submitMutation = useMutation({
     mutationFn: createODRequest,
-    onSuccess: () => {
+    onSuccess: (data) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        'Request Submitted',
-        'Your OD request has been submitted successfully.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setReason('');
-              setDescription('');
-              setCategory(ODCategory.PROJECT);
-              setStartDate(new Date());
-              setEndDate(new Date());
-              setNeedsLab(false);
-              setSelectedLab(null);
-              setSelectedStudents([]);
-              setIsTeamRequest(false);
-              router.back();
-            },
-          },
-        ]
-      );
+      Alert.alert('Success', 'Request submitted successfully');
+      router.replace('/(app)/odrequest');
     },
     onError: (error: any) => {
+      console.error('Error creating request:', error);
+      Alert.alert('Error', error.message || 'Failed to create request');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error.message || 'Failed to submit request');
     },
   });
 
@@ -187,7 +284,9 @@ export default function CreateODRequest() {
       startDate,
       endDate,
       labId: selectedLab?.id,
-      students: studentIds
+      students: studentIds,
+      // @ts-ignore - Allow null value
+      proofOfOD: proofUrl
     });
   };
 
@@ -205,25 +304,17 @@ export default function CreateODRequest() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.back();
-            }}
-          >
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>New OD Request</Text>
+          <Text style={styles.headerTitle}>Create OD Request</Text>
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <View style={styles.content}>
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Ionicons name="document-text-outline" size={22} color="#4f5b93" />
@@ -446,29 +537,91 @@ export default function CreateODRequest() {
             </View>
           </View>
 
+          {/* Upload Proof of OD Section */}
+          <View style={styles.uploadCard}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="document-attach-outline" size={22} color="#4f5b93" />
+              <Text style={styles.uploadCardTitle}>Supporting Document</Text>
+            </View>
+            
+            <Text style={styles.uploadDescriptionText}>Upload a proof document for your OD request (e.g., event invitation, medical certificate, etc.)</Text>
+            
+            {proofImage ? (
+              <View style={styles.selectedImageContainer}>
+                <Image source={{ uri: proofImage }} style={styles.selectedImage} />
+                <Text style={styles.fileName}>{proofFileName}</Text>
+                
+                {!proofUrl && !isUploadingProof && (
+                  <TouchableOpacity 
+                    style={[styles.uploadButton, styles.uploadNowButton]} 
+                    onPress={handleUploadProof}
+                  >
+                    <Ionicons name="cloud-upload-outline" size={16} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.uploadButtonText}>Upload Now</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {isUploadingProof && (
+                  <View style={styles.uploadingContainer}>
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                    <Text style={styles.uploadingText}>Uploading...</Text>
+                  </View>
+                )}
+                
+                {proofUrl && (
+                  <View style={styles.uploadSuccessContainer}>
+                    <Ionicons name="checkmark-circle" size={18} color="#059669" style={{ marginRight: 8 }} />
+                    <Text style={styles.uploadSuccessText}>Uploaded successfully</Text>
+                  </View>
+                )}
+                
+                <TouchableOpacity 
+                  style={styles.removeButton} 
+                  onPress={removeImage}
+                  disabled={isUploadingProof}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.uploadButton} 
+                onPress={pickImage}
+              >
+                <Ionicons name="image-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.uploadButtonText}>Select Image</Text>
+              </TouchableOpacity>
+            )}
+            
+            {uploadError && (
+              <Text style={styles.errorText}>{uploadError}</Text>
+            )}
+          </View>
+
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={handleSubmit}
-            disabled={submitMutation.isPending}
+            disabled={submitMutation.isPending || isUploadingProof}
           >
             <LinearGradient
-              colors={['#4f5b93', '#6373b5']}
+              colors={['#4f5b93', '#6d6a97']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.submitButton}
             >
               {submitMutation.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
                   <Ionicons name="paper-plane" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.submitText}>Submit Request</Text>
+                  <Text style={styles.submitButtonText}>Submit Request</Text>
                 </>
               )}
             </LinearGradient>
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </ScrollView>
       
       {/* Lab Selection Modal */}
       <Modal
@@ -628,11 +781,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 16,
     marginTop: 24,
-    // backgroundColor: '#fff',
-    // elevation: 2,
-    // shadowOpacity: 0.1,
-    // shadowRadius: 2,
-    // shadowOffset: { width: 0, height: 2 },
   },
   backButton: {
     width: 40,
@@ -640,6 +788,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
   },
   headerTitle: {
     fontSize: 18,
@@ -847,7 +1000,19 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   removeButton: {
-    padding: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF3B30',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  removeButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   // Modal styles
   modalContainer: {
@@ -949,5 +1114,177 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     color: '#666',
+  },
+  uploadedImageContainer: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  uploadedImage: {
+    width: '100%',
+    height: 180,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  uploadedImageDetails: {
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+  },
+  fileName: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
+  },
+  uploadButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  uploadNowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4f5b93',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  uploadNowButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  uploadSuccessContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  uploadSuccessText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  uploadErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  uploadErrorText: {
+    color: '#F44336',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  selectImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    borderStyle: 'dashed',
+    paddingVertical: 20,
+    marginTop: 10,
+  },
+  selectImageButtonText: {
+    fontSize: 16,
+    color: '#4f5b93',
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  uploadDescriptionText: {
+    fontSize: 14,
+    color: '#777',
+    marginBottom: 12,
+  },
+  uploadCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  uploadCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#111827',
+  },
+  selectedImageContainer: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  selectedImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 8,
+    resizeMode: 'cover',
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  uploadingText: {
+    marginLeft: 8,
+    color: '#4F46E5',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  submitContainer: {
+    padding: 16,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  uploadButton: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginVertical: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  uploadButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  submitButtonContainer: {
+    borderRadius: 25,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+    elevation: 2,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 40,
   },
 }); 
