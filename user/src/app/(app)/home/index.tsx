@@ -248,18 +248,19 @@ export default function HomeScreen() {
         <View style={styles.actionsContainer}>
           {isTeacher ? (
             // Teacher Actions
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push('/(app)/approvals/index');
-              }}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: '#4f5b93' }]}>
-                <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-              </View>
-              <Text style={styles.actionText}>View Pending Approvals</Text>
-            </TouchableOpacity>
+            // <TouchableOpacity 
+            //   style={styles.actionButton}
+            //   onPress={() => {
+            //     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            //     router.push('/(app)/approvals/index');
+            //   }}
+            // >
+            //   <View style={[styles.actionIcon, { backgroundColor: '#4f5b93' }]}>
+            //     <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
+            //   </View>
+            //   <Text style={styles.actionText}>View Pending Approvals</Text>
+            // </TouchableOpacity>
+            <></>
           ) : (
             // Student Actions
             <>
