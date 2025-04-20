@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth';
-import { authorize } from '../middleware/authorize';
-import { validateResource } from '../middleware/validate';
-import { groupController } from '../controllers/group';
-import { createGroupSchema, updateGroupSchema } from '../types/group';
+import { authMiddleware } from '../middleware/auth.js';
+import { authorize } from '../middleware/authorize.js';
+import { validateResource } from '../middleware/validate.js';
+import { groupController } from '../controllers/group.js';
+import { createGroupSchema, updateGroupSchema } from '../types/group.js';
 
 const router = Router();
 

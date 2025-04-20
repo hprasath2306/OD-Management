@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { User } from "@prisma/client";
-import prisma from "../db/config";
-import { verifyToken } from "../utils/jwt";
+import prisma from "../db/config.js";
+import { verifyToken } from "../utils/jwt.js";
 
 export const authMiddleware = async (
     req: Request,

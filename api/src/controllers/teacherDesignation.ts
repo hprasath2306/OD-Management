@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { teacherDesignationService } from "../services/teacherDesignation";
+import { teacherDesignationService } from "../services/teacherDesignation.js";
 
 export class TeacherDesignationController {
   // Create a new teacher designation

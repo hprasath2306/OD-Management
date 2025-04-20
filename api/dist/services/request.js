@@ -271,6 +271,7 @@ export class RequestService {
     }
     // Get requests for approver
     async getApproverRequests(userId) {
+        console.log(`Getting approver requests for userId: ${userId}`);
         // Fetch pending ApprovalSteps for this approver
         const pendingSteps = await prisma.approvalStep.findMany({
             where: {
@@ -280,6 +281,14 @@ export class RequestService {
             include: {
                 approval: {
                     include: {
+                        approvalSteps: {
+                            include: {
+                                User: true
+                            },
+                            orderBy: {
+                                sequence: 'asc'
+                            }
+                        },
                         request: {
                             include: {
                                 students: {
@@ -306,11 +315,37 @@ export class RequestService {
                 group: true,
             },
         });
+        console.log(`Found ${pendingSteps.length} pending approval steps for user ${userId}`);
         return pendingSteps.map((step) => {
-            const { request } = step.approval;
+            const { request, approvalSteps } = step.approval;
             const approverGroupId = step.groupId;
+            console.log(`Processing step ${step.id}, sequence: ${step.sequence}, for request ${request.id}`);
+            console.log(`This approval has ${approvalSteps.length} total steps`);
             // Filter students to only those in the approver's group
             const groupStudents = request.students.filter((rs) => rs.student.groupId === approverGroupId);
+            // Get previous approval steps with comments
+            const previousSteps = approvalSteps
+                .filter(s => s.sequence < step.sequence)
+                .map(s => ({
+                sequence: s.sequence,
+                status: s.status,
+                comments: s.comments,
+                approvedAt: s.approvedAt,
+                approver: s.User ? {
+                    id: s.User.id,
+                    name: s.User.name,
+                    email: s.User.email,
+                    role: s.User.role
+                } : null,
+                role: request.FlowTemplate?.steps.find(fs => fs.sequence === s.sequence)?.role
+            }));
+            console.log(`For step sequence ${step.sequence}, found ${previousSteps.length} previous steps`);
+            if (previousSteps.length > 0) {
+                console.log(`Previous steps: ${JSON.stringify(previousSteps)}`);
+            }
+            else {
+                console.log(`No previous steps found - this must be the first approval step (Sequence ${step.sequence})`);
+            }
             return {
                 requestId: request.id,
                 type: request.type,
@@ -341,6 +376,8 @@ export class RequestService {
                     sequence: step.sequence,
                     role: request.FlowTemplate?.steps.find((s) => s.sequence === step.sequence)?.role,
                 },
+                // Add previous approval steps with comments
+                previousSteps: previousSteps
             };
         });
     }

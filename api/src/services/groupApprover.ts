@@ -1,5 +1,5 @@
 import { GroupApprover, Role } from '@prisma/client';
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 
 export class GroupApproverService {
   // Create a new group approver

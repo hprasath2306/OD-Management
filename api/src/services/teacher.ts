@@ -1,5 +1,5 @@
 import { Teacher, User, UserRole } from '@prisma/client';
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 import { Argon2id } from "oslo/password";
 
 export class TeacherService {

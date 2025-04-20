@@ -116,6 +116,12 @@ export default function TeacherApprovals() {
   };
 
   const renderItem = ({ item, section }: { item: any, section: any }) => {
+    // Debug item structure
+    console.log(`Rendering request ${item.requestId}, has previousSteps: ${Boolean(item.previousSteps)}`);
+    if (item.previousSteps && item.previousSteps.length > 0) {
+      console.log(`This item has ${item.previousSteps.length} previous steps`);
+    }
+    
     // Debug any issues with item structure
     if (!item || !item.requestId) {
       console.error('Invalid item in renderItem:', item);
@@ -152,11 +158,19 @@ export default function TeacherApprovals() {
         style={styles.requestCard}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          console.log('Navigating to detail screen with item including previousSteps:', 
+            item.previousSteps ? `yes (${item.previousSteps.length})` : 'no');
+          
+          // Log just before navigation to confirm data
+          const serializedRequest = JSON.stringify(item);
+          console.log('Navigation params size:', serializedRequest.length);
+          console.log('Navigation params preview:', serializedRequest.slice(0, 200) + '...');
+          
           router.push({
             pathname: `/(app)/approvals/[id]`,
             params: { 
               id: item.requestId,
-              request: JSON.stringify(item)
+              request: serializedRequest 
             }
           });
         }}

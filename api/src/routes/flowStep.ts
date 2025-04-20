@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { flowStepController } from "../controllers/flowStep";
+import { flowStepController } from "../controllers/flowStep.js";
 
-import { createFlowStepSchema, updateFlowStepSchema } from "../types/flowStep";
+import { createFlowStepSchema, updateFlowStepSchema } from "../types/flowStep.js";
 
-import { authorize } from "../middleware/authorize";
+import { authorize } from "../middleware/authorize.js";
 import { UserRole } from "@prisma/client";
-import { authMiddleware } from "../middleware/auth";
-import { validateResource } from "../middleware/validate";
+import { authMiddleware } from "../middleware/auth.js";
+import { validateResource } from "../middleware/validate.js";
 
 const router = Router();
 

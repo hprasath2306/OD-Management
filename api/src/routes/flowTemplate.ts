@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { flowTemplateController } from "../controllers/flowTemplate";
+import { flowTemplateController } from "../controllers/flowTemplate.js";
 
-import { createFlowTemplateSchema, updateFlowTemplateSchema } from "../types/flowTemplate";
+import { createFlowTemplateSchema, updateFlowTemplateSchema } from "../types/flowTemplate.js";
 
-import { authorize } from "../middleware/authorize";
+import { authorize } from "../middleware/authorize.js";
 import { UserRole } from "@prisma/client";
-import { authMiddleware } from "../middleware/auth";
-import { validateResource } from "../middleware/validate";
+import { authMiddleware } from "../middleware/auth.js";
+import { validateResource } from "../middleware/validate.js";
 
 const router = Router();
 

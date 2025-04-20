@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { flowStepService } from "../services/flowStep";
+import { flowStepService } from "../services/flowStep.js";
 
 export class FlowStepController {
   // Create a new flow step

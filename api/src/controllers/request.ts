@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { requestService } from "../services/request";
+import { requestService } from "../services/request.js";
 import { UserRole } from "@prisma/client";
 
 export class RequestController {

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { designationService } from "../services/designation";
+import { designationService } from "../services/designation.js";
 import { Role } from "@prisma/client";
 
 export class DesignationController {

@@ -14,14 +14,14 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { processApproval } from '../../../api/requestApi';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { processApproval, getApprovalDetail } from '../../../api/requestApi';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/src/context/AuthContext';
 
 export default function ApprovalDetailScreen() {
   const { id, request: requestParam } = useLocalSearchParams<{ id: string, request: string }>();
-  const [request, setRequest] = useState<any | null>(null);
+  const [parsedRequest, setParsedRequest] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [comments, setComments] = useState('');
   const [approvalModalVisible, setApprovalModalVisible] = useState(false);
@@ -31,12 +31,40 @@ export default function ApprovalDetailScreen() {
   const {user} = useAuth();
   const teacherId = user?.id;
 
-  // Parse the request from params
+  // Try to get the complete approval details including previous steps
+  const { 
+    data: requestDetail, 
+    isLoading: isDetailLoading,
+    error: detailError 
+  } = useQuery({
+    queryKey: ['approvalDetail', id],
+    queryFn: () => id && teacherId ? getApprovalDetail(id, teacherId) : null,
+    enabled: !!id && !!teacherId,
+  });
+
+  // Combine data - prefer the fetched details (which should include previousSteps) 
+  // but fallback to the passed request data
+  const request = requestDetail || parsedRequest;
+
+  // Debug log to check complete request object structure
+  useEffect(() => {
+    if (request) {
+      console.log('========= FULL REQUEST OBJECT DEBUG =========');
+      console.log('Request source:', requestDetail ? 'API fetch' : 'Navigation params');
+      console.log('Keys in request object:', Object.keys(request));
+      console.log('previousSteps field exists:', request.hasOwnProperty('previousSteps'));
+      console.log('previousSteps value:', request.previousSteps);
+      console.log('Complete request object:', JSON.stringify(request).slice(0, 500) + '...');
+      console.log('=========================================');
+    }
+  }, [request, requestDetail]);
+
+  // Parse the request from params as fallback
   useEffect(() => {
     if (requestParam) {
       try {
-        const parsedRequest = JSON.parse(requestParam);
-        setRequest(parsedRequest);
+        const parsed = JSON.parse(requestParam);
+        setParsedRequest(parsed);
       } catch (e) {
         console.error('Error parsing request:', e);
       }
@@ -54,6 +82,7 @@ export default function ApprovalDetailScreen() {
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['approverRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['approvalDetail', id] });
       Alert.alert(
         'Success',
         `Request ${actionType === 'APPROVED' ? 'approved' : 'rejected'} successfully`,
@@ -98,7 +127,7 @@ export default function ApprovalDetailScreen() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || isDetailLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
@@ -108,6 +137,10 @@ export default function ApprovalDetailScreen() {
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (detailError) {
+    console.error('Error loading approval details:', detailError);
   }
 
   if (!request) {
@@ -155,6 +188,86 @@ export default function ApprovalDetailScreen() {
             </View>
           </View>
         </View>
+
+        {/* Previous Approvals - Show comments from previous approvers */}
+        {request.previousSteps && request.previousSteps.length > 0 ? (
+          <View style={styles.detailCard}>
+            <Text style={styles.sectionTitle}>Previous Approvals</Text>
+            
+            {request.previousSteps.map((step: any, index: number) => (
+              <View key={`prev-step-${index}`} style={styles.prevApprovalItem}>
+                <View style={styles.prevApprovalHeader}>
+                  <View style={styles.prevStepRole}>
+                    <Ionicons 
+                      name="person-outline" 
+                      size={16} 
+                      color={step.status === 'APPROVED' ? '#4CAF50' : '#F44336'} 
+                    />
+                    <Text style={styles.prevStepRoleText}>
+                      {step.role || `Step ${step.sequence + 1}`}
+                    </Text>
+                  </View>
+                  
+                  <View style={[
+                    styles.miniStatusBadge, 
+                    { 
+                      backgroundColor: step.status === 'APPROVED' 
+                        ? '#E8F5E9' 
+                        : '#FFEBEE'
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.miniStatusText,
+                      { 
+                        color: step.status === 'APPROVED' 
+                          ? '#4CAF50' 
+                          : '#F44336'
+                      }
+                    ]}>
+                      {step.status}
+                    </Text>
+                  </View>
+                </View>
+                
+                {step.approver && (
+                  <Text style={styles.prevApproverName}>
+                    By: {step.approver.name}
+                  </Text>
+                )}
+                
+                {step.approvedAt && (
+                  <Text style={styles.prevTimestamp}>
+                    {new Date(step.approvedAt).toLocaleString()}
+                  </Text>
+                )}
+                
+                {step.comments && (
+                  <View style={styles.commentBox}>
+                    <Text style={styles.commentText}>
+                      "{step.comments}"
+                    </Text>
+                  </View>
+                )}
+                
+                {index < request.previousSteps.length - 1 && (
+                  <View style={styles.prevStepDivider} />
+                )}
+              </View>
+            ))}
+          </View>
+        ) : (
+          request.currentStep && request.currentStep.sequence > 0 ? (
+            <View style={styles.detailCard}>
+              <Text style={styles.sectionTitle}>Previous Approvals</Text>
+              <View style={styles.noPreviousStepsContainer}>
+                <Ionicons name="information-circle-outline" size={24} color="#4f5b93" />
+                <Text style={styles.noPreviousStepsText}>
+                  Previous approvers did not leave any comments.
+                </Text>
+              </View>
+            </View>
+          ) : null
+        )}
 
         {/* Request Information Card */}
         <View style={styles.detailCard}>
@@ -622,5 +735,77 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginLeft: 8,
+  },
+  prevApprovalItem: {
+    marginBottom: 12,
+  },
+  prevApprovalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  prevStepRole: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  prevStepRoleText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 6,
+  },
+  miniStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  miniStatusText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  prevApproverName: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
+  },
+  prevTimestamp: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  commentBox: {
+    backgroundColor: '#f8f9fa',
+    borderLeftWidth: 3,
+    borderLeftColor: '#4f5b93',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#333',
+    fontStyle: 'italic',
+  },
+  prevStepDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  noPreviousStepsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  noPreviousStepsText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    flex: 1,
   },
 }); 

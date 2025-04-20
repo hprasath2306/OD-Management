@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { departmentService } from "../services/department";
+import { departmentService } from "../services/department.js";
 
 export class DepartmentController {
   // Create department

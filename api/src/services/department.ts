@@ -1,6 +1,6 @@
 import { Department } from '@prisma/client';
 
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 
 
 export class DepartmentService {

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { groupApproverService } from "../services/groupApprover";
+import { groupApproverService } from "../services/groupApprover.js";
 
 export class GroupApproverController {
   // Create group approver

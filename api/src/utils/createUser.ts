@@ -1,7 +1,5 @@
 import { UserRole } from "@prisma/client";
-import { isRegNo } from "./checker";
-import { isEmail } from "./checker";
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 export async function createUser(
   email: string,
   password: string,

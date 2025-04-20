@@ -1,5 +1,5 @@
 import { FlowStep, Role } from '@prisma/client';
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 
 export class FlowStepService {
   // Create a new flow step

@@ -1,5 +1,5 @@
 import { Designation, Role } from '@prisma/client';
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 
 export class DesignationService {
   // Create a new designation

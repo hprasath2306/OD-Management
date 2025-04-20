@@ -1,11 +1,11 @@
 import { Router } from "express";
 
-import { authorize } from "../middleware/authorize";
+import { authorize } from "../middleware/authorize.js";
 import { UserRole } from "@prisma/client";
-import { createRequestSchema, processApprovalSchema } from "../types/request";
-import { validateResource } from "../middleware/validate";
-import { requestController } from "../controllers/request";
-import { authMiddleware } from "../middleware/auth";
+import { createRequestSchema, processApprovalSchema } from "../types/request.js";
+import { validateResource } from "../middleware/validate.js";
+import { requestController } from "../controllers/request.js";
+import { authMiddleware } from "../middleware/auth.js";
 
 const router = Router();
 

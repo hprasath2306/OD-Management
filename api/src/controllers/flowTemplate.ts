@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { flowTemplateService } from "../services/flowTemplate";
+import { flowTemplateService } from "../services/flowTemplate.js";
 
 export class FlowTemplateController {
   // Create a new flow template

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth';
-import { authorize } from '../middleware/authorize';
-import { validateResource } from '../middleware/validate';
-import { departmentController } from '../controllers/department';
-import { createDepartmentSchema, updateDepartmentSchema } from '../types/department';
+import { authMiddleware } from '../middleware/auth.js';
+import { authorize } from '../middleware/authorize.js';
+import { validateResource } from '../middleware/validate.js';
+import { departmentController } from '../controllers/department.js';
+import { createDepartmentSchema, updateDepartmentSchema } from '../types/department.js';
 
 const router = Router();
 

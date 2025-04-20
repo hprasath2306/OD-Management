@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth';
-import { authorize } from '../middleware/authorize';
-import { validateResource } from '../middleware/validate';
-import { designationController } from '../controllers/designation';
-import { createDesignationSchema, updateDesignationSchema } from '../types/designation';
+import { authMiddleware } from '../middleware/auth.js';
+import { authorize } from '../middleware/authorize.js';
+import { validateResource } from '../middleware/validate.js';
+import { designationController } from '../controllers/designation.js';
+import { createDesignationSchema, updateDesignationSchema } from '../types/designation.js';
 
 const router = Router();
 

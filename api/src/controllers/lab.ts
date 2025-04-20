@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { labService } from "../services/lab";
+import { labService } from "../services/lab.js";
 
 export class LabController {
   // Create a new lab

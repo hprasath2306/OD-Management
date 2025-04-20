@@ -1,5 +1,5 @@
 import { FlowTemplate, FlowStep } from '@prisma/client';
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 
 export class FlowTemplateService {
   // Create a new flow template with steps

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { teacherService } from "../services/teacher";
+import { teacherService } from "../services/teacher.js";
 
 export class TeacherController {
   // Create teacher

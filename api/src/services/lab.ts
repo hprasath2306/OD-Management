@@ -1,5 +1,5 @@
 import { Lab } from '@prisma/client';
-import prisma from "../db/config";
+import prisma from "../db/config.js";
 
 export class LabService {
   // Create a new lab

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth';
-import { authorize } from '../middleware/authorize';
-import { validateResource } from '../middleware/validate';
-import { groupApproverController } from '../controllers/groupApprover';
-import { createGroupApproverSchema, updateGroupApproverSchema } from '../types/groupApprover';
+import { authMiddleware } from '../middleware/auth.js';
+import { authorize } from '../middleware/authorize.js';
+import { validateResource } from '../middleware/validate.js';
+import { groupApproverController } from '../controllers/groupApprover.js';
+import { createGroupApproverSchema, updateGroupApproverSchema } from '../types/groupApprover.js';
 
 const router = Router();
 

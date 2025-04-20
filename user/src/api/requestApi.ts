@@ -2,8 +2,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RequestType, ODCategory } from '../types/request';
 
-// const BASE_URL = 'http://10.0.2.2:3000/api';
-const BASE_URL = 'https://od-management-7t72.onrender.com/api';
+const BASE_URL = 'http://10.0.2.2:3000/api';
+// const BASE_URL = 'https://od-management-7t72.onrender.com/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -174,5 +174,37 @@ export const cancelRequest = async (requestId: string) => {
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Failed to cancel request');
+  }
+};
+
+// Get approval detail with previous steps
+export const getApprovalDetail = async (requestId: string, teacherId: string) => {
+  try {
+    console.log(`Fetching approval detail for requestId: ${requestId}, teacherId: ${teacherId}`);
+    // We'll use the existing approver endpoint since it already includes the previousSteps
+    const response = await api.get('/requests/approver');
+    
+    if (!response.data.requests) {
+      console.error('Invalid response format:', response.data);
+      throw new Error('Failed to fetch approval details');
+    }
+    
+    // Find the specific request we're looking for
+    const request = response.data.requests.find((req: any) => req.requestId === requestId);
+    
+    if (!request) {
+      console.error('Request not found in response');
+      throw new Error('Approval request not found');
+    }
+    
+    console.log(`Found request with ID ${requestId}, has previousSteps: ${Boolean(request.previousSteps)}`);
+    if (request.previousSteps) {
+      console.log(`Number of previous steps: ${request.previousSteps.length}`);
+    }
+    
+    return request;
+  } catch (error: any) {
+    console.error('Error fetching approval detail:', error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch approval details');
   }
 }; 
