@@ -127,7 +127,18 @@ export default function CreateODRequest() {
         [
           {
             text: 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              setReason('');
+              setDescription('');
+              setCategory(ODCategory.PROJECT);
+              setStartDate(new Date());
+              setEndDate(new Date());
+              setNeedsLab(false);
+              setSelectedLab(null);
+              setSelectedStudents([]);
+              setIsTeamRequest(false);
+              router.back();
+            },
           },
         ]
       );

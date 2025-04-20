@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl,
+  Animated
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,22 +36,57 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const isTeacher = user?.role === 'TEACHER';
+  const spinValue = useRef(new Animated.Value(0)).current;
 
   // Query for student requests or teacher approval requests based on user role
   const { 
     data: requests, 
-    isLoading, 
+    isLoading,
+    refetch,
+    isRefetching
   } = useQuery({
     queryKey: [isTeacher ? 'approverRequests' : 'odRequests'],
     queryFn: isTeacher ? getApproverRequests : getStudentRequests
   });
   
   // For teachers, also fetch total requests for accurate count
-  const { data: teacherTotalRequests } = useQuery({
+  const { 
+    data: teacherTotalRequests,
+    refetch: refetchTotal
+  } = useQuery({
     queryKey: ['teacherTotalRequests'],
     queryFn: getTeacherRequests,
     enabled: isTeacher
   });
+
+  // Animate the refresh icon
+  useEffect(() => {
+    if (isRefetching) {
+      Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      spinValue.setValue(0);
+    }
+  }, [isRefetching, spinValue]);
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  });
+
+  // Handle refresh all data
+  const handleRefresh = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    refetch();
+    if (isTeacher) {
+      refetchTotal();
+    }
+  };
 
   // Calculate stats for students
   const getStudentStats = (): StudentStats => {
@@ -130,7 +167,26 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading || isRefetching}
+            onRefresh={handleRefresh}
+            colors={['#4f5b93']}
+            tintColor="#4f5b93"
+          />
+        }
+      >
+        {isRefetching && !isLoading && (
+          <View style={styles.refreshingContainer}>
+            <Animated.View style={{ transform: [{ rotate: spin }], marginRight: 8 }}>
+              <Ionicons name="sync-outline" size={16} color="#4f5b93" />
+            </Animated.View>
+            <Text style={styles.refreshingText}>Refreshing data...</Text>
+          </View>
+        )}
+        
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Welcome back,</Text>
@@ -192,19 +248,18 @@ export default function HomeScreen() {
         <View style={styles.actionsContainer}>
           {isTeacher ? (
             // Teacher Actions
-            // <TouchableOpacity 
-            //   style={styles.actionButton}
-            //   onPress={() => {
-            //     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            //     router.push('/(app)/approvals/index');
-            //   }}
-            // >
-            //   <View style={[styles.actionIcon, { backgroundColor: '#4f5b93' }]}>
-            //     <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-            //   </View>
-            //   <Text style={styles.actionText}>View Pending Approvals</Text>
-            // </TouchableOpacity>
-            <></>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push('/(app)/approvals/index');
+              }}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#4f5b93' }]}>
+                <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
+              </View>
+              <Text style={styles.actionText}>View Pending Approvals</Text>
+            </TouchableOpacity>
           ) : (
             // Student Actions
             <>
@@ -611,5 +666,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 20,
+  },
+  refreshingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: 'rgba(79, 91, 147, 0.08)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(79, 91, 147, 0.1)',
+  },
+  refreshingText: {
+    fontSize: 14,
+    color: '#4f5b93',
+    fontWeight: '500',
   },
 }); 

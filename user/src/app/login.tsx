@@ -219,13 +219,15 @@ export default function LoginScreen() {
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={22} color="#555" style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, email.length > 25 ? { fontSize: 14 } : null]}
               placeholder="Email"
               placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              numberOfLines={1}
+              ellipsizeMode="tail"
               editable={false}
             />
           </View>
@@ -263,13 +265,15 @@ export default function LoginScreen() {
             <View style={styles.inputContainer}>
               <Ionicons name="mail-outline" size={22} color="#555" style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, email.length > 25 ? { fontSize: 14 } : null]}
                 placeholder="Email"
                 placeholderTextColor="#999"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                numberOfLines={1}
+                ellipsizeMode="tail"
               />
             </View>
             <TouchableOpacity
@@ -370,13 +374,15 @@ export default function LoginScreen() {
             <View style={styles.inputContainer}>
               <Ionicons name="mail-outline" size={22} color="#555" style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, email.length > 25 ? { fontSize: 14 } : null]}
                 placeholder="Email"
                 placeholderTextColor="#999"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                numberOfLines={1}
+                ellipsizeMode="tail"
               />
             </View>
             <View style={styles.inputContainer}>
@@ -568,6 +574,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    minHeight: 54,
   },
   inputIcon: {
     padding: 12,
@@ -576,8 +583,10 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: 14,
+    paddingRight: 10,
     fontSize: 16,
     color: '#333',
+    overflow: 'hidden',
   },
   eyeIcon: {
     padding: 12,

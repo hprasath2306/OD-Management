@@ -28,14 +28,14 @@ export default function ApprovalDetailScreen() {
   const [actionType, setActionType] = useState<'APPROVED' | 'REJECTED' | null>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const {user} = useAuth();
+  const { user } = useAuth();
   const teacherId = user?.id;
 
   // Try to get the complete approval details including previous steps
-  const { 
-    data: requestDetail, 
+  const {
+    data: requestDetail,
     isLoading: isDetailLoading,
-    error: detailError 
+    error: detailError
   } = useQuery({
     queryKey: ['approvalDetail', id],
     queryFn: () => id && teacherId ? getApprovalDetail(id, teacherId) : null,
@@ -73,9 +73,9 @@ export default function ApprovalDetailScreen() {
   }, [requestParam]);
 
   const approvalMutation = useMutation({
-    mutationFn: (data: { requestId: string, status: 'APPROVED' | 'REJECTED', comments?: string }) => 
-      processApproval(teacherId!, { 
-        status: data.status, 
+    mutationFn: (data: { requestId: string, status: 'APPROVED' | 'REJECTED', comments?: string }) =>
+      processApproval(teacherId!, {
+        status: data.status,
         comments: data.comments,
         requestId: data.requestId
       }),
@@ -86,7 +86,12 @@ export default function ApprovalDetailScreen() {
       Alert.alert(
         'Success',
         `Request ${actionType === 'APPROVED' ? 'approved' : 'rejected'} successfully`,
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{
+          text: 'OK', onPress: () => {
+            setComments('');
+            router.back()
+          }
+        }]
       );
     },
     onError: (error: any) => {
@@ -105,11 +110,11 @@ export default function ApprovalDetailScreen() {
       Alert.alert('Error', 'Missing required information for approval');
       return;
     }
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     console.log(`Processing approval with teacherId: ${teacherId} and requestId: ${id}`);
-    
+
     approvalMutation.mutate({
       requestId: id,
       status: actionType,
@@ -193,34 +198,34 @@ export default function ApprovalDetailScreen() {
         {request.previousSteps && request.previousSteps.length > 0 ? (
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>Previous Approvals</Text>
-            
+
             {request.previousSteps.map((step: any, index: number) => (
               <View key={`prev-step-${index}`} style={styles.prevApprovalItem}>
                 <View style={styles.prevApprovalHeader}>
                   <View style={styles.prevStepRole}>
-                    <Ionicons 
-                      name="person-outline" 
-                      size={16} 
-                      color={step.status === 'APPROVED' ? '#4CAF50' : '#F44336'} 
+                    <Ionicons
+                      name="person-outline"
+                      size={16}
+                      color={step.status === 'APPROVED' ? '#4CAF50' : '#F44336'}
                     />
                     <Text style={styles.prevStepRoleText}>
                       {step.role || `Step ${step.sequence + 1}`}
                     </Text>
                   </View>
-                  
+
                   <View style={[
-                    styles.miniStatusBadge, 
-                    { 
-                      backgroundColor: step.status === 'APPROVED' 
-                        ? '#E8F5E9' 
+                    styles.miniStatusBadge,
+                    {
+                      backgroundColor: step.status === 'APPROVED'
+                        ? '#E8F5E9'
                         : '#FFEBEE'
                     }
                   ]}>
                     <Text style={[
                       styles.miniStatusText,
-                      { 
-                        color: step.status === 'APPROVED' 
-                          ? '#4CAF50' 
+                      {
+                        color: step.status === 'APPROVED'
+                          ? '#4CAF50'
                           : '#F44336'
                       }
                     ]}>
@@ -228,19 +233,19 @@ export default function ApprovalDetailScreen() {
                     </Text>
                   </View>
                 </View>
-                
+
                 {step.approver && (
                   <Text style={styles.prevApproverName}>
                     By: {step.approver.name}
                   </Text>
                 )}
-                
+
                 {step.approvedAt && (
                   <Text style={styles.prevTimestamp}>
                     {new Date(step.approvedAt).toLocaleString()}
                   </Text>
                 )}
-                
+
                 {step.comments && (
                   <View style={styles.commentBox}>
                     <Text style={styles.commentText}>
@@ -248,7 +253,7 @@ export default function ApprovalDetailScreen() {
                     </Text>
                   </View>
                 )}
-                
+
                 {index < request.previousSteps.length - 1 && (
                   <View style={styles.prevStepDivider} />
                 )}
@@ -272,19 +277,19 @@ export default function ApprovalDetailScreen() {
         {/* Request Information Card */}
         <View style={styles.detailCard}>
           <Text style={styles.sectionTitle}>Request Information</Text>
-          
+
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Request Type</Text>
             <Text style={styles.detailValue}>{request.type}</Text>
           </View>
-          
+
           {request.category && (
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Category</Text>
               <Text style={styles.detailValue}>{request.category}</Text>
             </View>
           )}
-          
+
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Duration</Text>
             <View style={styles.dateRangeContainer}>
@@ -297,26 +302,26 @@ export default function ApprovalDetailScreen() {
               </Text>
             </View>
           </View>
-          
+
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Lab Required</Text>
             <Text style={styles.detailValue}>{request.needsLab ? 'Yes' : 'No'}</Text>
           </View>
-          
+
           {request.lab && (
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Lab</Text>
               <Text style={styles.detailValue}>{request.lab.name}</Text>
             </View>
           )}
-          
+
           <View style={styles.detailDivider} />
-          
+
           <View style={styles.reasonContainer}>
             <Text style={styles.reasonLabel}>Reason</Text>
             <Text style={styles.reasonText}>{request.reason}</Text>
           </View>
-          
+
           {request.description && (
             <View style={styles.reasonContainer}>
               <Text style={styles.reasonLabel}>Description</Text>
@@ -329,7 +334,7 @@ export default function ApprovalDetailScreen() {
         {request.students && request.students.length > 0 && (
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>Student Information</Text>
-            
+
             {request.students.map((student: any) => (
               <View key={student.id} style={styles.studentItem}>
                 <Ionicons name="person-circle-outline" size={24} color="#4f5b93" />
@@ -347,7 +352,7 @@ export default function ApprovalDetailScreen() {
                       </Text>
                     )}
                   </View>
-                  
+
                   {student.group && (
                     <View style={styles.groupContainer}>
                       <Ionicons name="people-outline" size={16} color="#666" />
@@ -356,7 +361,7 @@ export default function ApprovalDetailScreen() {
                       </Text>
                     </View>
                   )}
-                  
+
                   {student.attendancePercentage && (
                     <View style={styles.attendanceContainer}>
                       <Ionicons name="calendar-outline" size={16} color="#666" />
@@ -390,7 +395,7 @@ export default function ApprovalDetailScreen() {
               <Ionicons name="close-circle-outline" size={20} color="#fff" />
               <Text style={styles.actionButtonText}>Reject</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[styles.actionButton, styles.approveButton]}
               onPress={() => handleApproval(true)}
@@ -423,7 +428,7 @@ export default function ApprovalDetailScreen() {
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.modalBody}>
               <Text style={styles.commentLabel}>Comments (Optional)</Text>
               <TextInput
@@ -434,7 +439,7 @@ export default function ApprovalDetailScreen() {
                 value={comments}
                 onChangeText={setComments}
               />
-              
+
               <TouchableOpacity
                 style={[
                   styles.confirmButton,
@@ -447,10 +452,10 @@ export default function ApprovalDetailScreen() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Ionicons 
-                      name={actionType === 'APPROVED' ? "checkmark-circle-outline" : "close-circle-outline"} 
-                      size={20} 
-                      color="#fff" 
+                    <Ionicons
+                      name={actionType === 'APPROVED' ? "checkmark-circle-outline" : "close-circle-outline"}
+                      size={20}
+                      color="#fff"
                     />
                     <Text style={styles.confirmButtonText}>
                       Confirm {actionType === 'APPROVED' ? 'Approval' : 'Rejection'}
