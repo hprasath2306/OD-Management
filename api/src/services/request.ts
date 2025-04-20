@@ -421,7 +421,15 @@ export class RequestService {
         students: groupStudents.map((rs) => ({
           id: rs.student.id,
           rollNo: rs.student.rollNo,
+          regNo: rs.student.regNo,
+          attendancePercentage: rs.student.attendancePercentage,
           name: rs.student.user.name,
+          group: rs.student.group ? {
+            id: rs.student.group.id,
+            name: rs.student.group.name,
+            section: rs.student.group.section,
+            batch: rs.student.group.batch
+          } : null
         })),
         approvalStatus: step.approval.status,
         currentStep: {

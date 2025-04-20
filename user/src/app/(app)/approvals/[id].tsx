@@ -332,12 +332,42 @@ export default function ApprovalDetailScreen() {
             
             {request.students.map((student: any) => (
               <View key={student.id} style={styles.studentItem}>
-                <Ionicons name="person-circle-outline" size={24} color="#6200ee" />
+                <Ionicons name="person-circle-outline" size={24} color="#4f5b93" />
                 <View style={styles.studentDetails}>
                   <Text style={styles.studentName}>{student.name}</Text>
-                  <Text style={styles.studentInfo}>
-                    Roll No: {student.rollNo}
-                  </Text>
+                  <View style={styles.studentIdContainer}>
+                    {student.rollNo && (
+                      <Text style={styles.studentInfo}>
+                        Roll No: {student.rollNo}
+                      </Text>
+                    )}
+                    {student.regNo && (
+                      <Text style={styles.studentInfo}>
+                        Reg No: {student.regNo}
+                      </Text>
+                    )}
+                  </View>
+                  
+                  {student.group && (
+                    <View style={styles.groupContainer}>
+                      <Ionicons name="people-outline" size={16} color="#666" />
+                      <Text style={styles.groupInfo}>
+                        {student.group.name} {student.group.section && `• ${student.group.section}`} {student.group.batch && `• ${student.group.batch}`}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {student.attendancePercentage && (
+                    <View style={styles.attendanceContainer}>
+                      <Ionicons name="calendar-outline" size={16} color="#666" />
+                      <Text style={[
+                        styles.attendanceText,
+                        { color: student.attendancePercentage < 75 ? '#F44336' : '#4CAF50' }
+                      ]}>
+                        Attendance: {student.attendancePercentage.toFixed(1)}%
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
             ))}
@@ -602,11 +632,13 @@ const styles = StyleSheet.create({
   },
   studentItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 16,
     backgroundColor: '#f9f9f9',
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4f5b93',
   },
   studentDetails: {
     marginLeft: 12,
@@ -616,11 +648,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 6,
+  },
+  studentIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 8,
   },
   studentInfo: {
     fontSize: 14,
     color: '#666',
-    marginTop: 2,
+    marginRight: 12,
+  },
+  groupContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  groupInfo: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+  },
+  attendanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  attendanceText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
   },
   actionCard: {
     backgroundColor: '#fff',
