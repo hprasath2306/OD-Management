@@ -29,6 +29,7 @@ const RequestTableContainer: React.FC = () => {
   const itemsPerPage: number = 10;
   const { user } = useAuth();
 
+
   useEffect(() => {
     const loadRequests = async () => {
       try {
@@ -70,10 +71,10 @@ const RequestTableContainer: React.FC = () => {
     else if (dateFilter === 'month') prefix = 'Last_Month_Requests';
     else if (dateFilter === '6months') prefix = 'Last_6_Months_Requests';
     else if (dateFilter === 'custom') prefix = `Requests_${filters.dateFrom}_to_${filters.dateTo}`;
-    
+
     if (filters.category) prefix += `_${filters.category}`;
     if (filters.status) prefix += `_${filters.status}`;
-    
+
     return prefix;
   };
 
@@ -105,6 +106,8 @@ const RequestTableContainer: React.FC = () => {
     );
   }
 
+  console.log('Filtered Requests:', filteredRequests); // Debugging line
+
   return (
     <div className="py-8 px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
       {/* Header */}
@@ -122,7 +125,7 @@ const RequestTableContainer: React.FC = () => {
       <div className="bg-gradient-to-br from-gray-900/80 to-slate-800/80 backdrop-blur-md rounded-xl shadow-xl border border-gray-700/50 overflow-hidden relative">
         <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-purple-500/10 blur-2xl"></div>
         <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl"></div>
-        
+
         {/* Search and Filters */}
         <div className="px-6 py-5 border-b border-gray-700 relative z-10">
           <div className="space-y-4">
@@ -150,18 +153,20 @@ const RequestTableContainer: React.FC = () => {
               <thead className="bg-gray-800/50">
                 <tr>
                   <th className="py-3.5 pl-6 pr-3 text-left text-sm font-medium text-gray-200">Student</th>
+                  <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Class</th>
+                  <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Batch</th>
                   <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Type</th>
                   <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Category</th>
                   <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Reason</th>
                   <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Date</th>
                   <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Status</th>
-                  <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Requested By</th>
+                  {/* <th className="px-3 py-3.5 text-left text-sm font-medium text-gray-200">Requested By</th> */}
                 </tr>
               </thead>
               {filteredRequests.length === 0 ? (
                 <tbody>
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-sm text-gray-300">
+                    <td colSpan={9} className="py-8 text-center text-sm text-gray-300">
                       <div className="flex flex-col items-center justify-center">
                         <svg className="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
