@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,6 +18,8 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { usePushNotifications } from '../utils/usePushNotification';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updatePushToken } from '../api/authApi';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -86,6 +88,26 @@ export default function LoginScreen() {
       setIsLoading(false);
     }
   };
+
+  // Use effect to update push token for user after successful login
+  useEffect(() => {
+    const registerPushToken = async () => {
+      if (expoPushToken?.data && isLoading === false) {
+        try {
+          // Get auth token from storage to check if user is logged in
+          const authToken = await AsyncStorage.getItem('token');
+          if (authToken) {
+            console.log("Updating push token after login:", expoPushToken.data);
+            await updatePushToken(expoPushToken.data);
+          }
+        } catch (error) {
+          console.log("Error updating push token:", error);
+        }
+      }
+    };
+    
+    registerPushToken();
+  }, [expoPushToken?.data, isLoading]);
 
   const handleVerifyEmail = async () => {
     if (!verificationOtp) {

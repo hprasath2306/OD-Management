@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://10.0.2.2:3000/api';
-// const BASE_URL = 'https://od-management-7t72.onrender.com/api';
+// const BASE_URL = 'http://10.0.2.2:3000/api';
+const BASE_URL = 'https://od-management-7t72.onrender.com/api';
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -118,5 +118,15 @@ export const isAuthenticated = async () => {
     return !!token;
   } catch (error) {
     return false;
+  }
+};
+
+export const updatePushToken = async (pushToken: string) => {
+  try {
+    const response = await api.post('/auth/user/push-token', { pushToken });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating push token:', error);
+    throw new Error(error.response?.data?.message || 'Failed to update push token');
   }
 }; 

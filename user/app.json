@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/logoo.jpg",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.hprasath935.user"
+      "package": "com.hprasath935.user",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",

@@ -9,6 +9,7 @@ import { Platform } from "react-native";
 export interface PushNotificationState {
   expoPushToken?: Notifications.ExpoPushToken;
   notification?: Notifications.Notification;
+  error?: string;
 }
 
 export const usePushNotifications = (): PushNotificationState => {
@@ -28,39 +29,78 @@ export const usePushNotifications = (): PushNotificationState => {
     Notifications.Notification | undefined
   >();
 
+  const [error, setError] = useState<string | undefined>();
+
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
 
   async function registerForPushNotificationsAsync() {
     let token;
-    if (Device.isDevice) {
-      const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+    
+    // Set up Android notification channel
+    if (Platform.OS === "android") {
+      try {
+        Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#FF231F7C",
+        });
+      } catch (err) {
+        console.log("Error setting up notification channel:", err);
       }
-      if (finalStatus !== "granted") {
-        alert("Failed to get push token for push notification");
-        return;
-      }
-
-      token = await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.eas.projectId,
-      });
-    } else {
-      alert("Must be using a physical device for Push notifications");
     }
 
-    if (Platform.OS === "android") {
-      Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF231F7C",
-      });
+    if (Device.isDevice) {
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+
+        if (existingStatus !== "granted") {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        
+        if (finalStatus !== "granted") {
+          setError("Permission not granted for push notifications");
+          console.log("Push notification permission not granted");
+          return;
+        }
+
+        // Try to get project ID from Constants
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        
+        if (!projectId) {
+          setError("Project ID not found. Make sure it's set in your app.json");
+          console.log("Project ID not found for push notifications");
+          return;
+        }
+        
+        console.log("Getting push token with project ID:", projectId);
+        
+        try {
+          token = await Notifications.getExpoPushTokenAsync({
+            projectId,
+          });
+          console.log("Push token generated successfully:", token);
+        } catch (tokenError: any) {
+          // FCM initialization error
+          if (tokenError.message?.includes("FirebaseApp is not initialized")) {
+            setError("FCM not properly configured. Push notifications will not work until Firebase is set up.");
+            console.log("FCM not initialized error:", tokenError.message);
+            // Don't throw an error, just log it and continue
+          } else {
+            setError(`Error getting push token: ${tokenError.message}`);
+            console.log("Error getting push token:", tokenError);
+          }
+        }
+      } catch (err) {
+        setError(`General push notification error: ${err}`);
+        console.log("Push notification setup error:", err);
+      }
+    } else {
+      setError("Push notifications require a physical device");
+      console.log("Must use physical device for Push notifications");
     }
 
     return token;
@@ -68,7 +108,9 @@ export const usePushNotifications = (): PushNotificationState => {
 
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
-      setExpoPushToken(token);
+      if (token) {
+        setExpoPushToken(token);
+      }
     });
 
     notificationListener.current =
@@ -78,20 +120,25 @@ export const usePushNotifications = (): PushNotificationState => {
 
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log(response);
+        console.log("Notification response:", response);
       });
 
     return () => {
-      Notifications.removeNotificationSubscription(
-        notificationListener.current!
-      );
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(
+          notificationListener.current
+        );
+      }
 
-      Notifications.removeNotificationSubscription(responseListener.current!);
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
     };
   }, []);
 
   return {
     expoPushToken,
     notification,
+    error
   };
 };
