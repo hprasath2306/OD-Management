@@ -41,10 +41,14 @@ export interface FlowTemplate {
   }[];
 }
 
+
+
 export interface Request {
   id: string;
   type: 'LEAVE' | 'OD';
   category: 'PROJECT' | null;
+  class: string | null;
+  batch: string | null;
   needsLab: boolean;
   reason: string;
   description: string;
