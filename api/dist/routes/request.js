@@ -10,6 +10,8 @@ router.post('/:id/approve', authMiddleware, requestController.processApprovalSte
 router.get('/approver', authMiddleware, requestController.getApproverRequests.bind(requestController));
 // Get requests for student
 router.get('/student', authMiddleware, requestController.getStudentRequests.bind(requestController));
+// Get requests for a group (filtered by role)
+router.get('/group', authMiddleware, requestController.getGroupRequests.bind(requestController));
 // Get all requests (admin only)
 router.get('/', authMiddleware, requestController.getAllRequests.bind(requestController));
 // Get request details specifically for approvals (includes proof document)

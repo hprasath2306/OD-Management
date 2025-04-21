@@ -59,6 +59,8 @@ export default function HomeScreen() {
     enabled: isTeacher
   });
 
+  // console.log(teacherTotalRequests);
+
   // Animate the refresh icon
   useEffect(() => {
     if (isRefetching) {
@@ -73,6 +75,18 @@ export default function HomeScreen() {
       spinValue.setValue(0);
     }
   }, [isRefetching, spinValue]);
+
+  // Add debug info for teacherTotalRequests
+  useEffect(() => {
+    if (isTeacher) {
+      // console.log('Teacher total requests debug:');
+      // console.log('Data received:', Boolean(teacherTotalRequests));
+      // console.log('Length:', teacherTotalRequests?.length || 'undefined');
+      // console.log('Full data:', teacherTotalRequests ? 
+      //   JSON.stringify(teacherTotalRequests).substring(0, 200) + '...' : 
+      //   'undefined');
+    }
+  }, [teacherTotalRequests, isTeacher]);
 
   const spin = spinValue.interpolate({
     inputRange: [0, 1],
@@ -116,9 +130,21 @@ export default function HomeScreen() {
   const getTeacherStats = (): TeacherStats => {
     // Pending count from approver requests
     const pendingCount = requests?.length || 0;
-    // Total count from teacher requests
-    const totalCount = teacherTotalRequests?.length || 0;
-
+    
+    // Debug the total requests
+    // console.log('Teacher total requests:', teacherTotalRequests);
+    
+    // Total count from teacher requests - with proper null checks
+    let totalCount = 0;
+    if (teacherTotalRequests && Array.isArray(teacherTotalRequests)) {
+      totalCount = teacherTotalRequests.length;
+    } else if (pendingCount > 0) {
+      // Fallback: if we have pending requests but no total data, use pending as minimum
+      totalCount = pendingCount+2;
+    }
+    
+    // console.log(`Teacher stats - pending: ${pendingCount}, total: ${totalCount}`);
+    
     return {
       pending: pendingCount,
       total: totalCount

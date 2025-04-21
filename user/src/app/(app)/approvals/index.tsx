@@ -295,7 +295,7 @@ export default function TeacherApprovals() {
               sections={organizedData}
               renderItem={renderItem}
               renderSectionHeader={renderSectionHeader}
-              keyExtractor={(item) => item.requestId}
+              keyExtractor={(item, index) => `${item.requestId || 'item'}-${index}`}
               contentContainerStyle={styles.listContainer}
               stickySectionHeadersEnabled={true}
               refreshControl={

@@ -21,6 +21,16 @@ export class RequestController {
             });
         }
     }
+    async getGroupRequests(req, res) {
+        try {
+            const requests = await requestService.getGroupRequests(res.locals.user.id);
+            res.json({ requests });
+        }
+        catch (error) {
+            console.error(`Error fetching grouped requests: ${error.message}`);
+            res.status(500).json({ error: 'Failed to fetch requests' });
+        }
+    }
     // Process an approval step
     async processApprovalStep(req, res) {
         try {

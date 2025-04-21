@@ -56,7 +56,18 @@ export default function ApprovalDetailScreen() {
       console.log('Keys in request object:', Object.keys(request));
       console.log('previousSteps field exists:', request.hasOwnProperty('previousSteps'));
       console.log('previousSteps value:', request.previousSteps);
-      console.log('Complete request object:', JSON.stringify(request) + '...');
+      
+      // Log students data structure
+      console.log('Students data:', request.students);
+      if (request.students) {
+        console.log('Students array type:', Array.isArray(request.students));
+        console.log('Students count:', request.students.length);
+        if (request.students.length > 0) {
+          console.log('First student keys:', Object.keys(request.students[0]));
+        }
+      }
+      
+      console.log('Complete request object:', JSON.stringify(request));
       console.log('=========================================');
     }
   }, [request, requestDetail]);
@@ -197,84 +208,126 @@ export default function ApprovalDetailScreen() {
         </View>
 
         {/* Previous Approvals - Show comments from previous approvers */}
-        {request.previousSteps && request.previousSteps.length > 0 ? (
-          <View style={styles.detailCard}>
-            <Text style={styles.sectionTitle}>Previous Approvals</Text>
-
-            {request.previousSteps.map((step: any, index: number) => (
-              <View key={`prev-step-${index}`} style={styles.prevApprovalItem}>
-                <View style={styles.prevApprovalHeader}>
-                  <View style={styles.prevStepRole}>
-                    <Ionicons
-                      name="person-outline"
-                      size={16}
-                      color={step.status === 'APPROVED' ? '#4CAF50' : '#F44336'}
-                    />
-                    <Text style={styles.prevStepRoleText}>
-                      {step.role || `Step ${step.sequence + 1}`}
-                    </Text>
+        {(() => {
+          // Log the structure of approvals for debugging
+          console.log('Approvals data:', request.approvals);
+          
+          // Extract previous steps from the API response structure
+          let previousStepsFromApprovals = [];
+          
+          if (request.approvals && Array.isArray(request.approvals)) {
+            // Find the current approval
+            const currentApproval = request.approvals.find((a: any) => 
+              a.approvalSteps && Array.isArray(a.approvalSteps) && 
+              a.approvalSteps.some((step: any) => step.id === request.userApprovalStep?.id)
+            );
+            
+            if (currentApproval && currentApproval.approvalSteps) {
+              // Get all steps with sequence less than the current one
+              const currentStepSequence = request.userApprovalStep?.sequence || 0;
+              previousStepsFromApprovals = currentApproval.approvalSteps
+                .filter((step: any) => 
+                  step.sequence < currentStepSequence && 
+                  (step.status === 'APPROVED' || step.status === 'REJECTED')
+                )
+                .map((step: any) => ({
+                  ...step,
+                  role: step.sequence === 0 ? 'TUTOR' : 
+                         step.sequence === 1 ? 'YEAR_INCHARGE' : 
+                         step.sequence === 2 ? 'HOD' : `Step ${step.sequence + 1}`,
+                  approver: step.User
+                }));
+            }
+          }
+          
+          console.log('Extracted previous steps:', previousStepsFromApprovals);
+          
+          // Use either the provided previousSteps or our extracted ones
+          const previousSteps = request.previousSteps || previousStepsFromApprovals;
+          
+          if (previousSteps && previousSteps.length > 0) {
+            return (
+              <View style={styles.detailCard}>
+                <Text style={styles.sectionTitle}>Previous Approvals</Text>
+  
+                {previousSteps.map((step: any, index: number) => (
+                  <View key={`prev-step-${index}`} style={styles.prevApprovalItem}>
+                    <View style={styles.prevApprovalHeader}>
+                      <View style={styles.prevStepRole}>
+                        <Ionicons
+                          name="person-outline"
+                          size={16}
+                          color={step.status === 'APPROVED' ? '#4CAF50' : '#F44336'}
+                        />
+                        <Text style={styles.prevStepRoleText}>
+                          {step.role || `Step ${step.sequence + 1}`}
+                        </Text>
+                      </View>
+  
+                      <View style={[
+                        styles.miniStatusBadge,
+                        {
+                          backgroundColor: step.status === 'APPROVED'
+                            ? '#E8F5E9'
+                            : '#FFEBEE'
+                        }
+                      ]}>
+                        <Text style={[
+                          styles.miniStatusText,
+                          {
+                            color: step.status === 'APPROVED'
+                              ? '#4CAF50'
+                              : '#F44336'
+                          }
+                        ]}>
+                          {step.status}
+                        </Text>
+                      </View>
+                    </View>
+  
+                    {step.approver && (
+                      <Text style={styles.prevApproverName}>
+                        By: {step.approver.name}
+                      </Text>
+                    )}
+  
+                    {step.approvedAt && (
+                      <Text style={styles.prevTimestamp}>
+                        {new Date(step.approvedAt).toLocaleString()}
+                      </Text>
+                    )}
+  
+                    {step.comments && (
+                      <View style={styles.commentBox}>
+                        <Text style={styles.commentText}>
+                          "{step.comments}"
+                        </Text>
+                      </View>
+                    )}
+  
+                    {index < previousSteps.length - 1 && (
+                      <View style={styles.prevStepDivider} />
+                    )}
                   </View>
-
-                  <View style={[
-                    styles.miniStatusBadge,
-                    {
-                      backgroundColor: step.status === 'APPROVED'
-                        ? '#E8F5E9'
-                        : '#FFEBEE'
-                    }
-                  ]}>
-                    <Text style={[
-                      styles.miniStatusText,
-                      {
-                        color: step.status === 'APPROVED'
-                          ? '#4CAF50'
-                          : '#F44336'
-                      }
-                    ]}>
-                      {step.status}
-                    </Text>
-                  </View>
+                ))}
+              </View>
+            );
+          } else if (request.userApprovalStep && request.userApprovalStep.sequence > 0) {
+            return (
+              <View style={styles.detailCard}>
+                <Text style={styles.sectionTitle}>Previous Approvals</Text>
+                <View style={styles.noPreviousStepsContainer}>
+                  <Ionicons name="information-circle-outline" size={24} color="#4f5b93" />
+                  <Text style={styles.noPreviousStepsText}>
+                    Previous approvers did not leave any comments.
+                  </Text>
                 </View>
-
-                {step.approver && (
-                  <Text style={styles.prevApproverName}>
-                    By: {step.approver.name}
-                  </Text>
-                )}
-
-                {step.approvedAt && (
-                  <Text style={styles.prevTimestamp}>
-                    {new Date(step.approvedAt).toLocaleString()}
-                  </Text>
-                )}
-
-                {step.comments && (
-                  <View style={styles.commentBox}>
-                    <Text style={styles.commentText}>
-                      "{step.comments}"
-                    </Text>
-                  </View>
-                )}
-
-                {index < request.previousSteps.length - 1 && (
-                  <View style={styles.prevStepDivider} />
-                )}
               </View>
-            ))}
-          </View>
-        ) : (
-          request.currentStep && request.currentStep.sequence > 0 ? (
-            <View style={styles.detailCard}>
-              <Text style={styles.sectionTitle}>Previous Approvals</Text>
-              <View style={styles.noPreviousStepsContainer}>
-                <Ionicons name="information-circle-outline" size={24} color="#4f5b93" />
-                <Text style={styles.noPreviousStepsText}>
-                  Previous approvers did not leave any comments.
-                </Text>
-              </View>
-            </View>
-          ) : null
-        )}
+            );
+          } else {
+            return null;
+          }
+        })()}
 
         {/* Request Information Card */}
         <View style={styles.detailCard}>
@@ -333,51 +386,70 @@ export default function ApprovalDetailScreen() {
         </View>
 
         {/* Students Card */}
-        {request.students && request.students.length > 0 && (
+        {request.students && (
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>Student Information</Text>
 
-            {request.students.map((student: any) => (
-              <View key={student.id} style={styles.studentItem}>
-                <Ionicons name="person-circle-outline" size={24} color="#4f5b93" />
-                <View style={styles.studentDetails}>
-                  <Text style={styles.studentName}>{student.name}</Text>
-                  <View style={styles.studentIdContainer}>
-                    {student.rollNo && (
-                      <Text style={styles.studentInfo}>
-                        Roll No: {student.rollNo}
-                      </Text>
-                    )}
-                    {student.regNo && (
-                      <Text style={styles.studentInfo}>
-                        Reg No: {student.regNo}
-                      </Text>
-                    )}
+            {/* If students is an array, map through it */}
+            {Array.isArray(request.students) && request.students.length > 0 ? (
+              request.students.map((studentRecord: any) => {
+                // Extract the actual student data from the nested structure
+                const student = studentRecord.student || studentRecord;
+                const user = student.user || {};
+                
+                return (
+                  <View key={studentRecord.id || student.id || Math.random().toString()} style={styles.studentItem}>
+                    <Ionicons name="person-circle-outline" size={24} color="#4f5b93" />
+                    <View style={styles.studentDetails}>
+                      <Text style={styles.studentName}>{user.name || student.name || 'Unknown Student'}</Text>
+                      <View style={styles.studentIdContainer}>
+                        {student.rollNo && (
+                          <Text style={styles.studentInfo}>
+                            Roll No: {student.rollNo}
+                          </Text>
+                        )}
+                        {student.regNo && (
+                          <Text style={styles.studentInfo}>
+                            Reg No: {student.regNo}
+                          </Text>
+                        )}
+                      </View>
+
+                      {student.group && (
+                        <View style={styles.groupContainer}>
+                          <Ionicons name="people-outline" size={16} color="#666" />
+                          <Text style={styles.groupInfo}>
+                            {student.group.name || 'Unknown Group'} 
+                            {student.group.section && `• ${student.group.section}`} 
+                            {student.group.batch && `• ${student.group.batch}`}
+                          </Text>
+                        </View>
+                      )}
+
+                      {student.attendancePercentage && (
+                        <View style={styles.attendanceContainer}>
+                          <Ionicons name="calendar-outline" size={16} color="#666" />
+                          <Text style={[
+                            styles.attendanceText,
+                            { color: student.attendancePercentage < 75 ? '#F44336' : '#4CAF50' }
+                          ]}>
+                            Attendance: {student.attendancePercentage.toFixed(1)}%
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-
-                  {student.group && (
-                    <View style={styles.groupContainer}>
-                      <Ionicons name="people-outline" size={16} color="#666" />
-                      <Text style={styles.groupInfo}>
-                        {student.group.name} {student.group.section && `• ${student.group.section}`} {student.group.batch && `• ${student.group.batch}`}
-                      </Text>
-                    </View>
-                  )}
-
-                  {student.attendancePercentage && (
-                    <View style={styles.attendanceContainer}>
-                      <Ionicons name="calendar-outline" size={16} color="#666" />
-                      <Text style={[
-                        styles.attendanceText,
-                        { color: student.attendancePercentage < 75 ? '#F44336' : '#4CAF50' }
-                      ]}>
-                        Attendance: {student.attendancePercentage.toFixed(1)}%
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                );
+              })
+            ) : (
+              // Fallback if students data structure is unexpected
+              <View style={styles.noPreviousStepsContainer}>
+                <Ionicons name="information-circle-outline" size={24} color="#4f5b93" />
+                <Text style={styles.noPreviousStepsText}>
+                  Unable to display student information due to unexpected data format.
+                </Text>
               </View>
-            ))}
+            )}
           </View>
         )}
 

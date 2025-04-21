@@ -64,9 +64,11 @@ export const getApproverRequests = async () => {
 export const getTeacherRequests = async () => {
   try {
     const response = await api.get('/requests/group');
+    console.log("fedgefdhghghghghghghgfd"+response.data.requests.length)
     return response.data.requests;
   } catch (error: any) {
     console.log(error)
+    console.log("kh")
     throw new Error(error.response?.data?.message || 'Failed to fetch teacher requests');
   }
 };
