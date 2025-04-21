@@ -10,8 +10,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Image,
-  ImageBackground
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { usePushNotifications } from '../utils/usePushNotification';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -32,6 +31,7 @@ export default function LoginScreen() {
   const [verifyEmailMode, setVerifyEmailMode] = useState(false);
   const [verificationOtp, setVerificationOtp] = useState('');
   const { login, forgotPassword, verifyForgotPassword, resetPassword, verifyEmail } = useAuth();
+  const { expoPushToken, notification } = usePushNotifications();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -43,8 +43,12 @@ export default function LoginScreen() {
       setIsLoading(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
+      // Include push token if available
+      const pushToken = expoPushToken?.data;
+      console.log("Push token on login:", pushToken);
+      
       // First check if the response indicates an admin account
-      const response = await login(email, password, false);
+      const response = await login(email, password, false, pushToken);
       
       // If login was successful and returned user is an admin, prevent login
       if (response?.user?.role === 'ADMIN') {

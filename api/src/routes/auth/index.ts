@@ -22,7 +22,7 @@ function generateOTP() {
 
 router.post("/login", async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, pushToken } = req.body;
         if (!email || !password) {
             res.status(400).json({ message: "Invalid email or password" });
             return;
@@ -84,6 +84,14 @@ router.post("/login", async (req, res) => {
                 });
                 res.status(403).json({ message: "Email not verified, mail has been sent" });
                 return;
+            }
+
+            // Update user with pushToken if provided
+            if (pushToken) {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { pushToken }
+                });
             }
 
             const token = generateToken(user);
@@ -323,7 +331,7 @@ router.post("/signup", async (req, res) => {
     try {
         const body = req.body;
 
-        const { email, password } = body;
+        const { email, password, pushToken } = body;
         console.log("SIGNUP", email);
         if (!email || !password) {
             res.status(400).json({ message: "Invalid email or password" });
@@ -341,6 +349,14 @@ router.post("/signup", async (req, res) => {
         if (!user) {
             res.status(401).json({ message: "Unauthorized" });
             return;
+        }
+
+        // Update user with pushToken if provided
+        if (pushToken) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { pushToken }
+            });
         }
 
         const token = generateToken(user);

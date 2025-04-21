@@ -20,9 +20,16 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, pushToken?: string) => {
   try {
-    const response = await api.post('/auth/login', { email, password });
+    const payload = { email, password };
+    
+    // Add push token to payload if available
+    if (pushToken) {
+      Object.assign(payload, { pushToken });
+    }
+    
+    const response = await api.post('/auth/login', payload);
     if (response.data?.token) {
       await AsyncStorage.setItem('token', response.data.token);
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));

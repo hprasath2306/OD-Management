@@ -54,6 +54,7 @@ model User {
   role          UserRole
   image         String?
   phone         String?   @unique
+  pushToken     String?
   emailVerified Boolean   @default(false)
   createdAt     DateTime  @default(now())
   teachers      Teacher?
