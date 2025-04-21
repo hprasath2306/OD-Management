@@ -12,10 +12,6 @@ router.get('/approver', authMiddleware, requestController.getApproverRequests.bi
 router.get('/student', authMiddleware, requestController.getStudentRequests.bind(requestController));
 // Get all requests (admin only)
 router.get('/', authMiddleware, requestController.getAllRequests.bind(requestController));
-// Get requests for a group (filtered by role)
-router.get('/group', authMiddleware, requestController.getGroupRequests.bind(requestController));
-// Get a specific request by ID - should be after other specific routes to avoid conflicts
-router.get('/:id', authMiddleware, requestController.getRequestById.bind(requestController));
 // Get request details specifically for approvals (includes proof document)
 router.get('/:id/detail', authMiddleware, requestController.getRequestDetailById.bind(requestController));
 // Get all requests (Authenticated users)

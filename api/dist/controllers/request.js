@@ -1,23 +1,24 @@
-import { requestService } from "../services/request.js";
+import { requestService, notificationService } from "../services/index.js";
+import prisma from "../db/config.js";
 import { UserRole, ApprovalStatus } from "@prisma/client";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
 export class RequestController {
     // Create a new request
     async createRequest(req, res) {
         try {
-            console.log("sdfgdsf" + res.locals.user.id);
-            const request = await requestService.createRequest({
+            const requestData = {
                 ...req.body,
-                requestedById: res.locals.user.id, // From auth middleware
-            });
-            res.status(201).json(request);
-            return;
+                requestedById: res.locals.user.id,
+            };
+            const request = await requestService.createRequest(requestData);
+            // Send notification to initial approvers
+            await notificationService.notifyNewRequest(request.id);
+            res.status(201).json({ request });
         }
         catch (error) {
-            console.log(error);
-            res.status(400).json({ error: error.message });
-            return;
+            console.error(`Error creating request: ${error.message}`);
+            res.status(400).json({
+                error: error.message || 'Failed to create request',
+            });
         }
     }
     // Process an approval step
@@ -35,6 +36,20 @@ export class RequestController {
                 comments,
                 requestId
             });
+            // Send notifications based on the approval status
+            if (status === ApprovalStatus.APPROVED || status === ApprovalStatus.REJECTED) {
+                // Get the approval step that was just processed
+                const approvalStep = await prisma.approvalStep.findFirst({
+                    where: {
+                        userId: id,
+                        approval: { requestId },
+                        status
+                    }
+                });
+                if (approvalStep) {
+                    await notificationService.notifyRequestStatus(requestId, approvalStep.id, status === ApprovalStatus.APPROVED);
+                }
+            }
             res.json(result);
         }
         catch (error) {
@@ -47,147 +62,40 @@ export class RequestController {
     // Get requests for approver
     async getApproverRequests(req, res) {
         try {
-            // Check if user is a teacher
-            if (res.locals.user.role !== UserRole.TEACHER) {
-                res.status(403).json({ error: 'Only teachers can view requests' });
-                return;
-            }
-            console.log("sdfgdsf" + res.locals.user.id);
             const requests = await requestService.getApproverRequests(res.locals.user.id);
             res.json({ requests });
         }
         catch (error) {
             console.error(`Error fetching approver requests: ${error.message}`);
-            res.status(500).json({ error: 'Failed to fetch requests' });
+            res.status(500).json({
+                error: error.message || 'Failed to fetch approver requests',
+            });
         }
     }
-    // Get requests for student
+    // Get student's requests
     async getStudentRequests(req, res) {
         try {
-            // Check if user is a student
-            if (res.locals.user.role !== UserRole.STUDENT) {
-                res.status(403).json({ error: 'Only students can view their requests' });
-                return;
-            }
             const requests = await requestService.getStudentRequests(res.locals.user.id);
             res.json({ requests });
         }
         catch (error) {
             console.error(`Error fetching student requests: ${error.message}`);
-            res.status(error.message.includes('not a student') ? 403 : 500).json({
-                error: error.message || 'Failed to fetch requests'
+            res.status(500).json({
+                error: error.message || 'Failed to fetch student requests',
             });
         }
     }
-    // Get all requests
+    // Get all requests (admin only)
     async getAllRequests(req, res) {
         try {
             const requests = await requestService.getAllRequests();
             res.json({ requests });
         }
         catch (error) {
-            console.error(`Error fetching requests: ${error.message}`);
-            res.status(500).json({ error: 'Failed to fetch requests' });
-        }
-    }
-    async getGroupRequests(req, res) {
-        try {
-            const requests = await requestService.getGroupRequests(res.locals.user.id);
-            res.json({ requests });
-        }
-        catch (error) {
-            console.error(`Error fetching grouped requests: ${error.message}`);
-            res.status(500).json({ error: 'Failed to fetch requests' });
-        }
-    }
-    // Get a specific request by ID
-    async getRequestById(req, res) {
-        try {
-            const { id } = req.params;
-            const request = await prisma.request.findUnique({
-                where: { id },
-                include: {
-                    students: {
-                        include: {
-                            student: {
-                                include: { user: true, group: true },
-                            },
-                        },
-                    },
-                    lab: true,
-                    requestedBy: true,
-                    FlowTemplate: {
-                        include: { steps: true },
-                    },
-                    Approvals: {
-                        include: {
-                            approvalSteps: {
-                                include: {
-                                    User: true
-                                }
-                            },
-                            group: true,
-                        },
-                    },
-                },
+            console.error(`Error fetching all requests: ${error.message}`);
+            res.status(500).json({
+                error: error.message || 'Failed to fetch all requests',
             });
-            if (!request) {
-                res.status(404).json({ error: 'Request not found' });
-                return;
-            }
-            // Format the response
-            const formattedRequest = {
-                id: request.id,
-                type: request.type,
-                category: request.category,
-                needsLab: request.needsLab,
-                reason: request.reason,
-                description: request.description,
-                startDate: request.startDate,
-                endDate: request.endDate,
-                proofOfOD: request.proofOfOD, // Include proof of OD document URL
-                lab: request.lab ? { id: request.lab.id, name: request.lab.name } : null,
-                requestedBy: {
-                    id: request.requestedBy.id,
-                    name: request.requestedBy.name,
-                    email: request.requestedBy.email,
-                },
-                students: request.students.map(rs => ({
-                    id: rs.student.id,
-                    rollNo: rs.student.rollNo,
-                    regNo: rs.student.regNo,
-                    name: rs.student.user.name,
-                    group: rs.student.group ? {
-                        id: rs.student.group.id,
-                        name: rs.student.group.name,
-                        section: rs.student.group.section,
-                        batch: rs.student.group.batch
-                    } : null,
-                })),
-                approvals: request.Approvals.map(approval => ({
-                    id: approval.id,
-                    groupId: approval.groupId,
-                    groupName: approval.group.name,
-                    status: approval.status,
-                    currentStepIndex: approval.currentStepIndex,
-                    steps: approval.approvalSteps.map(step => ({
-                        sequence: step.sequence,
-                        status: step.status,
-                        comments: step.comments,
-                        approvedAt: step.approvedAt,
-                        approver: step.User ? {
-                            id: step.User.id,
-                            name: step.User.name,
-                            email: step.User.email
-                        } : null,
-                    })),
-                })),
-            };
-            res.json(formattedRequest);
-        }
-        catch (error) {
-            console.error(`Error fetching request: ${error.message}`);
-            res.status(500).json({ error: 'Failed to fetch request details' });
         }
     }
     // Get request details with previous steps for approval view
@@ -239,33 +147,9 @@ export class RequestController {
             if (userApprovalStep) {
                 approval = request.Approvals.find(a => a.approvalSteps.some(step => step.id === userApprovalStep.id));
             }
-            // Get all previous steps for this approval
-            const previousSteps = userApprovalStep
-                ? request.Approvals
-                    .find(a => a.groupId === approverGroupId)
-                    ?.approvalSteps
-                    .filter(s => s.sequence < userApprovalStep.sequence)
-                    .map(s => ({
-                    sequence: s.sequence,
-                    status: s.status,
-                    comments: s.comments,
-                    approvedAt: s.approvedAt,
-                    approver: s.User ? {
-                        id: s.User.id,
-                        name: s.User.name,
-                        email: s.User.email,
-                        role: s.User.role
-                    } : null,
-                    role: request.FlowTemplate?.steps.find(fs => fs.sequence === s.sequence)?.role
-                }))
-                : [];
-            // Get students for the group if it exists
-            const groupStudents = approverGroupId
-                ? request.students.filter(rs => rs.student.groupId === approverGroupId)
-                : request.students;
-            // Format the response
-            const formattedRequest = {
-                requestId: request.id,
+            // Prepare the response
+            const responseObj = {
+                id: request.id,
                 type: request.type,
                 category: request.category,
                 needsLab: request.needsLab,
@@ -273,43 +157,28 @@ export class RequestController {
                 description: request.description,
                 startDate: request.startDate,
                 endDate: request.endDate,
-                proofOfOD: request.proofOfOD, // Include proof of OD document URL
-                lab: request.lab
-                    ? {
-                        id: request.lab.id,
-                        name: request.lab.name,
-                    }
-                    : null,
-                submittedBy: {
-                    id: request.requestedBy.id,
-                    name: request.requestedBy.name,
-                    email: request.requestedBy.email,
-                },
-                students: groupStudents.map(rs => ({
-                    id: rs.student.id,
-                    rollNo: rs.student.rollNo,
-                    regNo: rs.student.regNo,
-                    attendancePercentage: rs.student.attendancePercentage,
-                    name: rs.student.user.name,
-                    group: rs.student.group ? {
-                        id: rs.student.group.id,
-                        name: rs.student.group.name,
-                        section: rs.student.group.section,
-                        batch: rs.student.group.batch
-                    } : null
-                })),
-                approvalStatus: approval?.status || null,
-                currentStep: userApprovalStep ? {
-                    sequence: userApprovalStep.sequence,
-                    role: request.FlowTemplate?.steps.find(s => s.sequence === userApprovalStep.sequence)?.role,
-                } : null,
-                previousSteps: previousSteps || []
+                status: request.status,
+                lab: request.lab,
+                requestedBy: request.requestedBy,
+                proofOfOD: request.proofOfOD,
+                // Filter students to only those in the approver's group if applicable
+                students: approverGroupId
+                    ? request.students.filter(s => s.student.groupId === approverGroupId)
+                    : request.students,
+                flowTemplate: request.FlowTemplate,
+                // Include only the relevant approval for this approver if applicable
+                approvals: approval
+                    ? [approval]
+                    : request.Approvals,
+                userApprovalStep,
             };
-            res.json(formattedRequest);
+            res.json(responseObj);
         }
         catch (error) {
-            console.error(`Error fetching detailed request: ${error.message}`);
-            res.status(500).json({ error: 'Failed to fetch request details' });
+            console.error(`Error fetching request details: ${error.message}`);
+            res.status(500).json({
+                error: error.message || 'Failed to fetch request details',
+            });
         }
     }
 }

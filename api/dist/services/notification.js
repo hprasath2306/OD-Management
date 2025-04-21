@@ -1,13 +1,16 @@
-import { Expo } from 'expo-server-sdk';
-import { PrismaClient, ApprovalStatus } from '@prisma/client';
-const prisma = new PrismaClient();
-const expo = new Expo();
+import { ApprovalStatus } from '@prisma/client';
+import prisma from '../db/config.js';
+/**
+ * NotificationService for handling push notifications
+ * throughout the OD request workflow
+ */
 export class NotificationService {
-    // Send notification to a single user
+    /**
+     * Send a push notification to a single user
+     */
     async sendToUser(userId, title, body, data = {}) {
         try {
             // Get user's push token
-            // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 select: { pushToken: true }
@@ -16,152 +19,20 @@ export class NotificationService {
                 console.log(`No push token found for user ${userId}`);
                 return false;
             }
-            // Validate the token
-            if (!Expo.isExpoPushToken(user.pushToken)) {
-                console.error(`Invalid Expo push token ${user.pushToken} for user ${userId}`);
-                return false;
-            }
-            // Prepare message
-            const message = {
-                to: user.pushToken,
-                sound: 'default',
-                title,
-                body,
-                data,
-            };
-            // Send notification
-            return await this.sendNotifications([message]);
+            // Send the notification
+            return await this.sendNotification(user.pushToken, title, body, data);
         }
         catch (error) {
             console.error('Error sending notification to user:', error);
             return false;
         }
     }
-    // Send notification to multiple users
-    async sendToUsers(userIds, title, body, data = {}) {
-        try {
-            // Get users' push tokens
-            // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
-            const users = await prisma.user.findMany({
-                where: { id: { in: userIds } },
-                select: { id: true, pushToken: true }
-            });
-            const messages = [];
-            // Prepare messages for each user with a valid token
-            for (const user of users) {
-                if (user.pushToken && Expo.isExpoPushToken(user.pushToken)) {
-                    messages.push({
-                        to: user.pushToken,
-                        sound: 'default',
-                        title,
-                        body,
-                        data,
-                    });
-                }
-                else {
-                    console.log(`Skipping notification for user ${user.id} - invalid or missing token`);
-                }
-            }
-            if (messages.length === 0) {
-                console.log('No valid push tokens found for the specified users');
-                return false;
-            }
-            // Send notifications
-            return await this.sendNotifications(messages);
-        }
-        catch (error) {
-            console.error('Error sending notifications to users:', error);
-            return false;
-        }
-    }
-    // Send notifications to all users with a specific role
-    async sendToRole(role, title, body, data = {}) {
-        try {
-            // Get all users with the specified role who have push tokens
-            // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
-            const users = await prisma.user.findMany({
-                where: {
-                    role,
-                    // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
-                    pushToken: { not: null }
-                },
-                select: { id: true, pushToken: true }
-            });
-            const messages = [];
-            // Prepare messages for each user with a valid token
-            for (const user of users) {
-                if (user.pushToken && Expo.isExpoPushToken(user.pushToken)) {
-                    messages.push({
-                        to: user.pushToken,
-                        sound: 'default',
-                        title,
-                        body,
-                        data,
-                    });
-                }
-            }
-            if (messages.length === 0) {
-                console.log(`No valid push tokens found for users with role ${role}`);
-                return false;
-            }
-            // Send notifications
-            return await this.sendNotifications(messages);
-        }
-        catch (error) {
-            console.error(`Error sending notifications to users with role ${role}:`, error);
-            return false;
-        }
-    }
-    // Send notification to approvers for a specific request
-    async notifyApprovers(requestId, title, body) {
-        try {
-            // Find the current approval steps for the request
-            const approvalSteps = await prisma.approvalStep.findMany({
-                where: {
-                    approval: { requestId },
-                    status: ApprovalStatus.PENDING,
-                },
-                include: {
-                    // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
-                    User: {
-                        select: { id: true, pushToken: true }
-                    }
-                }
-            });
-            if (approvalSteps.length === 0) {
-                console.log(`No pending approval steps found for request ${requestId}`);
-                return false;
-            }
-            const messages = [];
-            // Prepare messages for each approver with a valid token
-            for (const step of approvalSteps) {
-                const user = step.User;
-                if (user?.pushToken && Expo.isExpoPushToken(user.pushToken)) {
-                    messages.push({
-                        to: user.pushToken,
-                        sound: 'default',
-                        title,
-                        body,
-                        data: { requestId, approvalStepId: step.id },
-                    });
-                }
-            }
-            if (messages.length === 0) {
-                console.log(`No valid push tokens found for approvers of request ${requestId}`);
-                return false;
-            }
-            // Send notifications
-            return await this.sendNotifications(messages);
-        }
-        catch (error) {
-            console.error(`Error sending notifications to approvers for request ${requestId}:`, error);
-            return false;
-        }
-    }
-    // Notify about new OD request
+    /**
+     * Notify about a new OD request to the appropriate approver
+     */
     async notifyNewRequest(requestId) {
         try {
-            // Get request details
+            // Get request details with the first approver
             const request = await prisma.request.findUnique({
                 where: { id: requestId },
                 include: {
@@ -178,9 +49,8 @@ export class NotificationService {
                     Approvals: {
                         include: {
                             approvalSteps: {
-                                where: { sequence: 0 },
-                                // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
-                                include: { User: { select: { id: true, name: true, pushToken: true } } }
+                                where: { sequence: 0 }, // First step
+                                include: { User: true }
                             }
                         }
                     }
@@ -190,38 +60,27 @@ export class NotificationService {
                 console.log(`Request ${requestId} not found`);
                 return false;
             }
-            // Get the initial approvers for each group
-            const initialApprovers = request.Approvals.flatMap(approval => approval.approvalSteps.map(step => step.User));
-            // Prepare messages for each approver with a valid token
-            const messages = [];
+            // Get the initial approvers
+            const initialApprovers = request.Approvals.flatMap(approval => approval.approvalSteps.map(step => step.User)).filter(Boolean);
+            // Send notifications to each initial approver
             for (const approver of initialApprovers) {
-                if (approver?.pushToken && Expo.isExpoPushToken(approver.pushToken)) {
-                    messages.push({
-                        to: approver.pushToken,
-                        sound: 'default',
-                        channelId: 'new-requests',
-                        title: 'New OD Request',
-                        body: `${request.requestedBy.name} has submitted a new OD request for approval`,
-                        data: { requestId, type: 'new-request' },
-                    });
+                if (approver?.pushToken) {
+                    await this.sendNotification(approver.pushToken, 'New OD Request', `${request.requestedBy.name || 'A student'} submitted a new OD request that needs your approval`, { requestId, type: 'new_request' });
                 }
             }
-            if (messages.length === 0) {
-                console.log(`No valid push tokens found for approvers of new request ${requestId}`);
-                return false;
-            }
-            // Send notifications
-            return await this.sendNotifications(messages);
+            return true;
         }
         catch (error) {
-            console.error(`Error sending notifications for new request ${requestId}:`, error);
+            console.error('Error notifying about new request:', error);
             return false;
         }
     }
-    // Notify about request approval
-    async notifyRequestApproval(requestId, approvalStepId, approve) {
+    /**
+     * Notify about an OD request approval or rejection
+     */
+    async notifyRequestStatus(requestId, approvalStepId, approve) {
         try {
-            // Get approval step and related information
+            // Get approval step details
             const approvalStep = await prisma.approvalStep.findUnique({
                 where: { id: approvalStepId },
                 include: {
@@ -234,8 +93,7 @@ export class NotificationService {
                                         include: {
                                             student: {
                                                 include: {
-                                                    // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
-                                                    user: { select: { id: true, name: true, pushToken: true } }
+                                                    user: true
                                                 }
                                             }
                                         }
@@ -244,15 +102,13 @@ export class NotificationService {
                             },
                             approvalSteps: {
                                 orderBy: { sequence: 'asc' },
-                                // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
                                 include: {
-                                    User: { select: { id: true, name: true, pushToken: true } }
+                                    User: true
                                 }
                             }
                         }
                     },
-                    // @ts-ignore - pushToken exists in the schema but TypeScript doesn't recognize it
-                    User: { select: { id: true, name: true, pushToken: true } }
+                    User: true
                 }
             });
             if (!approvalStep) {
@@ -261,92 +117,111 @@ export class NotificationService {
             }
             const { approval } = approvalStep;
             const { request } = approval;
-            // Prepare notifications based on approval status
+            // If approved, notify the next approver if there is one
             if (approve) {
-                // If approved, check if there are next approvers to notify
                 const nextStep = approval.approvalSteps.find(step => step.sequence === approvalStep.sequence + 1 && step.status === ApprovalStatus.PENDING);
-                if (nextStep?.User?.pushToken && Expo.isExpoPushToken(nextStep.User.pushToken)) {
+                if (nextStep?.User?.pushToken) {
                     // Notify next approver
-                    const message = {
-                        to: nextStep.User.pushToken,
-                        sound: 'default',
-                        channelId: 'approvals',
-                        title: 'OD Request Awaiting Your Approval',
-                        // @ts-ignore - User may be null, handled with OR condition
-                        body: `An OD request approved by ${approvalStep.User?.name || 'a previous approver'} now requires your attention`,
-                        data: { requestId, type: 'pending-approval' },
-                    };
-                    await this.sendNotifications([message]);
+                    await this.sendNotification(nextStep.User.pushToken, 'OD Request Awaiting Approval', `An OD request approved by ${approvalStep.User?.name || 'a previous approver'} now requires your review`, { requestId, type: 'pending_approval' });
                 }
-                // If this was the final approval in the flow, notify the student
-                if (!nextStep && approval.status === ApprovalStatus.APPROVED) {
-                    // Get all student users in this request
-                    const studentUsers = request.students.map(rs => rs.student.user);
-                    // Send notifications to students with valid tokens
-                    const studentMessages = studentUsers
-                        .filter(user => user.pushToken && Expo.isExpoPushToken(user.pushToken))
-                        .map(user => ({
-                        to: user.pushToken,
-                        sound: 'default',
-                        channelId: 'approvals',
-                        title: 'OD Request Approved',
-                        body: `Your OD request has been fully approved`,
-                        data: { requestId, type: 'approved' },
-                    }));
-                    if (studentMessages.length > 0) {
-                        await this.sendNotifications(studentMessages);
+                // Check if this was the final approval
+                const allApproved = approval.approvalSteps.every(step => step.status === ApprovalStatus.APPROVED || step.sequence > approvalStep.sequence);
+                if (allApproved) {
+                    // Check if all group approvals are complete
+                    const allApprovals = await prisma.approval.findMany({
+                        where: { requestId: request.id }
+                    });
+                    const requestApproved = allApprovals.every(a => a.status === ApprovalStatus.APPROVED);
+                    if (requestApproved) {
+                        // Notify student that request is fully approved
+                        await this.notifyRequestRequester(request.id, true);
                     }
                 }
             }
             else {
-                // If rejected, notify the student
-                const studentUsers = request.students.map(rs => rs.student.user);
-                // Send notifications to students with valid tokens
-                const studentMessages = studentUsers
-                    .filter(user => user.pushToken && Expo.isExpoPushToken(user.pushToken))
-                    .map(user => ({
-                    to: user.pushToken,
-                    sound: 'default',
-                    channelId: 'rejections',
-                    title: 'OD Request Rejected',
-                    // @ts-ignore - User may be null, handled with OR condition
-                    body: `Your OD request was rejected by ${approvalStep.User?.name || 'an approver'}`,
-                    data: { requestId, type: 'rejected' },
-                }));
-                if (studentMessages.length > 0) {
-                    await this.sendNotifications(studentMessages);
+                // Request was rejected, notify the student
+                await this.notifyRequestRequester(request.id, false);
+            }
+            return true;
+        }
+        catch (error) {
+            console.error('Error notifying about request status:', error);
+            return false;
+        }
+    }
+    /**
+     * Notify the requester about final approval or rejection
+     */
+    async notifyRequestRequester(requestId, approved) {
+        try {
+            const request = await prisma.request.findUnique({
+                where: { id: requestId },
+                include: {
+                    requestedBy: true,
+                    students: {
+                        include: {
+                            student: {
+                                include: {
+                                    user: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            if (!request) {
+                console.log(`Request ${requestId} not found`);
+                return false;
+            }
+            // Get all students involved in the request
+            const studentUsers = request.students.map(rs => rs.student.user).filter(Boolean);
+            // Also notify the requester if they're not in the students list
+            if (!studentUsers.find(u => u.id === request.requestedBy.id)) {
+                studentUsers.push(request.requestedBy);
+            }
+            // Notify all students
+            for (const user of studentUsers) {
+                if (user.pushToken) {
+                    await this.sendNotification(user.pushToken, approved ? 'OD Request Approved' : 'OD Request Rejected', approved
+                        ? 'Your OD request has been fully approved'
+                        : 'Your OD request was rejected', { requestId, type: approved ? 'approved' : 'rejected' });
                 }
             }
             return true;
         }
         catch (error) {
-            console.error(`Error sending notifications for request approval ${requestId}:`, error);
+            console.error('Error notifying requester:', error);
             return false;
         }
     }
-    // Helper to send notifications through Expo
-    async sendNotifications(messages) {
+    /**
+     * Send a notification using Expo's push notification service
+     */
+    async sendNotification(pushToken, title, body, data = {}) {
         try {
-            // Chunk the messages (Expo accepts a maximum of 100 messages per request)
-            const chunks = expo.chunkPushNotifications(messages);
-            // Send the chunks
-            const tickets = [];
-            for (const chunk of chunks) {
-                try {
-                    const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-                    tickets.push(...ticketChunk);
-                    console.log('Push notification sent:', ticketChunk);
-                }
-                catch (error) {
-                    console.error('Error sending push notification chunk:', error);
-                }
-            }
-            return tickets;
+            const message = {
+                to: pushToken,
+                sound: 'default',
+                title,
+                body,
+                data
+            };
+            const response = await fetch('https://exp.host/--/api/v2/push/send', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Accept-encoding': 'gzip, deflate',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(message)
+            });
+            const result = await response.json();
+            console.log('Push notification sent:', result);
+            return result;
         }
         catch (error) {
-            console.error('Error sending push notifications:', error);
+            console.error('Error sending push notification:', error);
             return false;
         }
     }
 }
-export const notificationService = new NotificationService();
