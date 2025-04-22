@@ -16,6 +16,7 @@ import {
   FlatList,
   ImageBackground,
   Image,
+  RefreshControl
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +28,8 @@ import {
   getAllLabs, 
   getAllStudents, 
   uploadProofOfOD,
-  uploadProofDirectly 
+  uploadProofDirectly,
+  getAllRequests
 } from '../../../api/requestApi';
 import { RequestType, ODCategory } from '../../../types/request';
 import * as Haptics from 'expo-haptics';
@@ -99,6 +101,12 @@ export default function CreateODRequest() {
   
   // Add state to store the OD stats
   const [odStats, setODStats] = useState<ODStats | null>(null);
+  // Add form validation and submission state
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Add refreshing state
+  const [refreshing, setRefreshing] = useState(false);
   
   // Load available labs and students
   useEffect(() => {
@@ -159,9 +167,9 @@ export default function CreateODRequest() {
     const fetchInitialData = async () => {
       try {
         // Fetch requests to get OD stats
-        const response = await api.get('/requests/student');
-        if (response.data.odStats) {
-          setODStats(response.data.odStats);
+        const response = await getAllRequests();
+        if (response.odStats) {
+          setODStats(response.odStats);
         }
         
         // ... rest of the existing code
@@ -172,6 +180,19 @@ export default function CreateODRequest() {
     
     fetchInitialData();
   }, []);
+
+  // Check form validity whenever relevant fields change
+  useEffect(() => {
+    // Basic validation - require reason and valid dates
+    const valid = Boolean(
+      reason.trim() && 
+      startDate && 
+      endDate && 
+      endDate >= startDate && 
+      (!needsLab || (needsLab && selectedLab))
+    );
+    setIsFormValid(valid);
+  }, [reason, startDate, endDate, needsLab, selectedLab]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -263,11 +284,13 @@ export default function CreateODRequest() {
   const submitMutation = useMutation({
     mutationFn: createODRequest,
     onSuccess: (data) => {
+      setIsSubmitting(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Success', 'Request submitted successfully');
       router.replace('/(app)/odrequest');
     },
     onError: (error: any) => {
+      setIsSubmitting(false);
       console.error('Error creating request:', error);
       Alert.alert('Error', error.message || 'Failed to create request');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -291,6 +314,7 @@ export default function CreateODRequest() {
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsSubmitting(true);
     
     // Prepare student IDs for team requests
     let studentIds = [user?.id || ''];
@@ -332,11 +356,51 @@ export default function CreateODRequest() {
   // Inside the submit button, add a check for maximum OD
   const hasReachedMaxOD = odStats?.remaining === 0;
 
+  // Handle refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Reload labs
+      const labsData = await getAllLabs();
+      setLabs(labsData);
+      
+      // Reload students
+      const studentsData = await getAllStudents();
+      const filteredStudents = Array.isArray(studentsData)
+        ? studentsData.filter(student => student.user?.id !== user?.id)
+        : [];
+      setStudents(filteredStudents);
+      
+      // Reload OD stats
+      const response = await getAllRequests();
+      if (response.odStats) {
+        setODStats(response.odStats);
+      }
+      
+      // Give haptic feedback for successful refresh
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      Alert.alert('Error', 'Failed to refresh data. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#4f5b93']}
+            tintColor="#4f5b93"
+          />
+        }
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#333" />
@@ -632,18 +696,46 @@ export default function CreateODRequest() {
 
           {odStats && (
             <View style={styles.odStatsContainer}>
-              <Text style={styles.odStatsText}>
-                OD Requests: {odStats.used}/{odStats.maximum}
-              </Text>
-              {odStats.remaining > 0 ? (
-                <Text style={styles.odRemainingText}>
-                  You have {odStats.remaining} OD requests remaining
-                </Text>
-              ) : (
+              <View style={styles.odStatsHeader}>
+                <Ionicons name="stats-chart" size={20} color="#fff" />
+                <Text style={styles.odStatsHeaderText}>OD Request Status</Text>
+              </View>
+              <View style={styles.odStatsRow}>
+                <View style={styles.odStatItem}>
+                  <Text style={styles.odStatLabel}>Used</Text>
+                  <Text style={styles.odStatValue}>{odStats.used}</Text>
+                </View>
+                <View style={[styles.odStatItem, styles.odStatItemBorder]}>
+                  <Text style={styles.odStatLabel}>Remaining</Text>
+                  <Text 
+                    style={[
+                      styles.odStatValue, 
+                      odStats.remaining === 0 ? styles.odStatValueZero : 
+                      odStats.remaining <= 2 ? styles.odStatValueLow :
+                      styles.odStatValueGood
+                    ]}
+                  >{odStats.remaining}</Text>
+                </View>
+                <View style={styles.odStatItem}>
+                  <Text style={styles.odStatLabel}>Maximum</Text>
+                  <Text style={styles.odStatValue}>{odStats.maximum}</Text>
+                </View>
+              </View>
+              
+              {odStats.remaining === 0 && (
                 <View style={styles.odLimitWarning}>
                   <Ionicons name="warning" size={16} color="#FFF" />
                   <Text style={styles.odLimitWarningText}>
                     You have reached the maximum number of OD requests
+                  </Text>
+                </View>
+              )}
+              
+              {odStats.remaining > 0 && odStats.remaining <= 2 && (
+                <View style={styles.odLimitCaution}>
+                  <Ionicons name="alert-circle" size={16} color="#FFF" />
+                  <Text style={styles.odLimitCautionText}>
+                    Only {odStats.remaining} OD requests remaining
                   </Text>
                 </View>
               )}
@@ -979,17 +1071,19 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   submitButton: {
-    borderRadius: 25,
-    paddingVertical: 16,
-    flexDirection: 'row',
+    backgroundColor: '#4f5b93',
+    paddingVertical: 14,
+    borderRadius: 10, 
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 16,
-    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   submitText: {
     color: '#fff',
@@ -1299,6 +1393,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  disabledButton: {
+    opacity: 0.5,
+    backgroundColor: '#999',
+  },
   uploadButton: {
     backgroundColor: '#4F46E5',
     borderRadius: 6,
@@ -1332,32 +1430,97 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   odStatsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#4f5b93',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
     marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  odStatsText: {
-    color: '#fff',
+  odStatsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  odStatsHeaderText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 8,
   },
-  odRemainingText: {
-    color: '#a5f3fc',
-    fontSize: 14,
-    marginTop: 4,
+  odStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  odStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  odStatLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
+  },
+  odStatValue: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  odStatItemBorder: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.2)',
+    borderRightColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+  },
+  odStatValueZero: {
+    color: '#FF5252',
+  },
+  odStatValueLow: {
+    color: '#FFEB3B',
+  },
+  odStatValueGood: {
+    color: '#81C784',
   },
   odLimitWarning: {
     backgroundColor: '#ef4444',
-    borderRadius: 4,
-    padding: 8,
-    marginTop: 8,
+    borderRadius: 0,
+    padding: 10,
+    marginTop: 12,
+    marginHorizontal: -16,
+    marginBottom: -16,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   odLimitWarningText: {
     color: '#fff',
-    fontSize: 13,
-    marginLeft: 6,
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  odLimitCaution: {
+    backgroundColor: '#FF9800',
+    borderRadius: 0,
+    padding: 10,
+    marginTop: 12,
+    marginHorizontal: -16,
+    marginBottom: -16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  odLimitCautionText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: '600',
   },
 }); 

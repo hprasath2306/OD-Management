@@ -17,6 +17,7 @@ const studentSchema = z.object({
   rollNo: z.string().min(1, 'Roll number is required'),
   regNo: z.string().min(1, 'Registration number is required'),
   attendancePercentage: z.number().min(0, 'Attendance must be at least 0%').max(100, 'Attendance cannot exceed 100%'),
+  
 });
 
 type StudentFormValues = z.infer<typeof studentSchema>;

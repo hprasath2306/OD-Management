@@ -26,7 +26,18 @@ export const getStudentRequests = async () => {
   try {
     const response = await api.get('/requests/student');
     // console.log(response.data)
-    return response.data.requests;
+    return response.data.requests || [];
+  } catch (error: any) {
+    console.log(error)
+    throw new Error(error.response?.data?.message || 'Failed to fetch OD requests');
+  }
+};
+
+// Alias for getStudentRequests to fix the API
+export const getAllRequests = async () => {
+  try {
+    const response = await api.get('/requests/student');
+    return response.data;  // Keep full response for odStats
   } catch (error: any) {
     console.log(error)
     throw new Error(error.response?.data?.message || 'Failed to fetch OD requests');

@@ -8,6 +8,7 @@ export interface Student {
   regNo: string;
   departmentId: string;
   attendancePercentage: number;
+  numberOfOD: number;
   user: {
     id: string;
     name: string;
@@ -171,7 +172,7 @@ export const studentApi = {
   // Reset a student's OD count
   resetStudentODCount: async (studentId: string) => {
     try {
-      const response = await api.post(`/students/${studentId}/reset-od-count`);
+      const response = await api.post(`/student/${studentId}/reset-od-count`);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to reset student OD count');
@@ -181,7 +182,7 @@ export const studentApi = {
   // Reset OD counts for all students in a group
   resetGroupODCounts: async (groupId: string) => {
     try {
-      const response = await api.post(`/students/group/${groupId}/reset-od-counts`);
+      const response = await api.post(`/student/group/${groupId}/reset-od-counts`);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to reset group OD counts');

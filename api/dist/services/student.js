@@ -264,7 +264,7 @@ export class StudentService {
         // Update all students in the group
         const result = await prisma.student.updateMany({
             where: { groupId },
-            data: { numberOfOD: 10 },
+            data: { numberOfOD: 0 },
         });
         return result.count;
     }

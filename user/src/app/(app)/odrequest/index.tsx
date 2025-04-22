@@ -19,7 +19,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { getStudentRequests } from '../../../api/requestApi';
+import { getStudentRequests, getAllRequests } from '../../../api/requestApi';
 import { OdRequest, ApprovalStatus } from '../../../types/request';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -64,9 +64,14 @@ export default function ODRequests() {
     queryFn: async () => {
       try {
         const response = await getStudentRequests();
-        setFilteredRequests(response.data.requests);
-        setODStats(response.data.odStats || null);
-        return response.data.requests;
+        // response is now the array of requests directly
+        setFilteredRequests(response);
+        
+        // Fetch OD stats separately since we need the full response
+        const statsResponse = await getAllRequests();
+        setODStats(statsResponse.odStats || null);
+        
+        return response;
       } catch (error) {
         console.error('Error fetching OD requests:', error);
         throw error;
@@ -382,37 +387,48 @@ export default function ODRequests() {
     
     return (
       <View style={styles.odStatusBanner}>
-        <View style={styles.odStatusInfo}>
-          <Text style={styles.odStatusTitle}>OD Requests</Text>
-          <View style={styles.odStatusRow}>
-            <View style={styles.odStatusItem}>
-              <Text style={styles.odStatusLabel}>Used</Text>
-              <Text style={styles.odStatusValue}>{odStats.used}</Text>
-            </View>
-            <View style={[styles.odStatusItem, styles.odStatusItemBorder]}>
-              <Text style={styles.odStatusLabel}>Remaining</Text>
-              <Text 
-                style={[
-                  styles.odStatusValue, 
-                  odStats.remaining === 0 ? styles.odStatusValueZero : null
-                ]}
-              >
-                {odStats.remaining}
-              </Text>
-            </View>
-            <View style={styles.odStatusItem}>
-              <Text style={styles.odStatusLabel}>Maximum</Text>
-              <Text style={styles.odStatusValue}>{odStats.maximum}</Text>
+        <View style={styles.odStatusGradient}>
+          <View style={styles.odStatusInfo}>
+            <Text style={styles.odStatusTitle}>On-Duty Request Status</Text>
+            <View style={styles.odStatusRow}>
+              <View style={styles.odStatusItem}>
+                <Text style={styles.odStatusLabel}>Used</Text>
+                <Text style={styles.odStatusValue}>{odStats.used}</Text>
+              </View>
+              <View style={[styles.odStatusItem, styles.odStatusItemBorder]}>
+                <Text style={styles.odStatusLabel}>Remaining</Text>
+                <Text 
+                  style={[
+                    styles.odStatusValue, 
+                    odStats.remaining === 0 ? styles.odStatusValueZero : 
+                    odStats.remaining <= 2 ? styles.odStatusValueLow : 
+                    styles.odStatusValueGood
+                  ]}
+                >
+                  {odStats.remaining}
+                </Text>
+              </View>
+              <View style={styles.odStatusItem}>
+                <Text style={styles.odStatusLabel}>Maximum</Text>
+                <Text style={styles.odStatusValue}>{odStats.maximum}</Text>
+              </View>
             </View>
           </View>
+          
+          {odStats.remaining === 0 && (
+            <View style={styles.limitReachedBanner}>
+              <Ionicons name="alert-circle" size={16} color="#fff" />
+              <Text style={styles.limitReachedText}>Maximum OD limit reached</Text>
+            </View>
+          )}
+          
+          {odStats.remaining > 0 && odStats.remaining <= 2 && (
+            <View style={styles.limitWarningBanner}>
+              <Ionicons name="warning" size={16} color="#fff" />
+              <Text style={styles.limitWarningText}>Only {odStats.remaining} OD requests remaining</Text>
+            </View>
+          )}
         </View>
-        
-        {odStats.remaining === 0 && (
-          <View style={styles.limitReachedBanner}>
-            <Ionicons name="alert-circle" size={16} color="#fff" />
-            <Text style={styles.limitReachedText}>Maximum OD limit reached</Text>
-          </View>
-        )}
       </View>
     );
   };
@@ -665,57 +681,66 @@ const styles = StyleSheet.create({
   },
   requestCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 16,
-    elevation: 2,
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   typeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   requestType: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#333',
   },
   category: {
     fontSize: 12,
-    color: '#666',
-    backgroundColor: '#f0f0f0',
+    color: '#4f5b93',
+    backgroundColor: 'rgba(79, 91, 147, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
     marginLeft: 8,
+    fontWeight: '600',
   },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   statusText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   reasonText: {
     fontSize: 15,
     color: '#333',
-    marginBottom: 12,
+    marginBottom: 16,
+    lineHeight: 22,
   },
   dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    padding: 10,
+    borderRadius: 8,
   },
   dateItem: {
     flexDirection: 'row',
@@ -723,8 +748,9 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
+    color: '#555',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -1151,18 +1177,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     marginTop: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#4f5b93',
     borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  odStatusGradient: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#4f5b93',
   },
   odStatusInfo: {
     padding: 16,
   },
   odStatusTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   odStatusRow: {
     flexDirection: 'row',
@@ -1175,30 +1215,48 @@ const styles = StyleSheet.create({
   odStatusItemBorder: {
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 16,
   },
   odStatusLabel: {
     fontSize: 12,
-    color: '#999',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 4,
   },
   odStatusValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
   },
   odStatusValueZero: {
     color: '#ef4444',
   },
+  odStatusValueLow: {
+    color: '#FFEB3B',
+  },
+  odStatusValueGood: {
+    color: '#4CAF50',
+  },
   limitReachedBanner: {
     backgroundColor: '#ef4444',
-    padding: 8,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   limitReachedText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  limitWarningBanner: {
+    backgroundColor: '#FF9800',
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  limitWarningText: {
     color: '#fff',
     marginLeft: 6,
     fontWeight: '500',
