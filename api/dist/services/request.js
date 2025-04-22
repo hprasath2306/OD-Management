@@ -1,4 +1,4 @@
-import { ApprovalStatus } from '@prisma/client';
+import { RequestType, ApprovalStatus } from '@prisma/client';
 import prisma from "../db/config.js";
 export class RequestService {
     // Create a new request with approval flow
@@ -12,6 +12,19 @@ export class RequestService {
         }
         if (data.students.length === 0) {
             throw new Error("At least one student must be included in the request");
+        }
+        // Only check OD limits for OD type requests (not for LEAVE)
+        if (data.type === RequestType.OD) {
+            // Check if any of the students have reached the maximum OD requests limit (10)
+            const studentRecords = await prisma.student.findMany({
+                where: { userId: { in: data.students } },
+                select: { id: true, user: { select: { name: true, email: true } }, numberOfOD: true }
+            });
+            const studentsWithMaxOD = studentRecords.filter(student => student.numberOfOD >= 10);
+            if (studentsWithMaxOD.length > 0) {
+                const studentNames = studentsWithMaxOD.map(s => s.user.name || s.user.email).join(', ');
+                throw new Error(`The following students have reached the maximum number of OD requests: ${studentNames}`);
+            }
         }
         // Pre-transaction checks
         const [lab, flowTemplate] = await Promise.all([
@@ -36,6 +49,15 @@ export class RequestService {
             });
             if (students.length !== data.students.length) {
                 throw new Error(`One or more students not found. Expected userIds: ${data.students}, Found: ${students.map(s => s.userId)}`);
+            }
+            // If it's an OD request, increment the numberOfOD for each student
+            if (data.type === RequestType.OD) {
+                for (const student of students) {
+                    await tx.student.update({
+                        where: { id: student.id },
+                        data: { numberOfOD: { increment: 1 } }
+                    });
+                }
             }
             // Create the request
             const request = await tx.request.create({

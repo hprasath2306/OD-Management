@@ -237,5 +237,36 @@ export class StudentService {
             return deletedStudent;
         });
     }
+    // Reset a student's OD count
+    async resetODCount(studentId) {
+        // Verify student exists
+        const student = await prisma.student.findUnique({
+            where: { id: studentId },
+        });
+        if (!student) {
+            throw new Error('Student not found');
+        }
+        // Reset the numberOfOD to 0
+        return prisma.student.update({
+            where: { id: studentId },
+            data: { numberOfOD: 0 },
+        });
+    }
+    // Reset OD counts for all students in a group
+    async resetGroupODCounts(groupId) {
+        // Verify group exists
+        const group = await prisma.group.findUnique({
+            where: { id: groupId },
+        });
+        if (!group) {
+            throw new Error('Group not found');
+        }
+        // Update all students in the group
+        const result = await prisma.student.updateMany({
+            where: { groupId },
+            data: { numberOfOD: 0 },
+        });
+        return result.count;
+    }
 }
 export const studentService = new StudentService();

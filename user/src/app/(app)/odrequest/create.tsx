@@ -58,6 +58,12 @@ type Student = {
   };
 };
 
+type ODStats = {
+  used: number;
+  remaining: number;
+  maximum: number;
+};
+
 export default function CreateODRequest() {
   const router = useRouter();
   const { user } = useAuth();
@@ -90,6 +96,9 @@ export default function CreateODRequest() {
   
   // Get user token for authentication
   const [userToken, setUserToken] = useState<string | null>(null);
+  
+  // Add state to store the OD stats
+  const [odStats, setODStats] = useState<ODStats | null>(null);
   
   // Load available labs and students
   useEffect(() => {
@@ -143,6 +152,25 @@ export default function CreateODRequest() {
     };
     
     fetchToken();
+  }, []);
+
+  // Inside the useEffect that loads data, fetch OD stats
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        // Fetch requests to get OD stats
+        const response = await api.get('/requests/student');
+        if (response.data.odStats) {
+          setODStats(response.data.odStats);
+        }
+        
+        // ... rest of the existing code
+      } catch (error) {
+        // ... error handling
+      }
+    };
+    
+    fetchInitialData();
   }, []);
 
   const formatDate = (date: Date) => {
@@ -300,6 +328,9 @@ export default function CreateODRequest() {
   };
 
   const categories = Object.values(ODCategory);
+
+  // Inside the submit button, add a check for maximum OD
+  const hasReachedMaxOD = odStats?.remaining === 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -599,26 +630,39 @@ export default function CreateODRequest() {
             )}
           </View>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleSubmit}
-            disabled={submitMutation.isPending || isUploadingProof}
-          >
-            <LinearGradient
-              colors={['#4f5b93', '#6d6a97']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitButton}
-            >
-              {submitMutation.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
+          {odStats && (
+            <View style={styles.odStatsContainer}>
+              <Text style={styles.odStatsText}>
+                OD Requests: {odStats.used}/{odStats.maximum}
+              </Text>
+              {odStats.remaining > 0 ? (
+                <Text style={styles.odRemainingText}>
+                  You have {odStats.remaining} OD requests remaining
+                </Text>
               ) : (
-                <>
-                  <Ionicons name="paper-plane" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.submitButtonText}>Submit Request</Text>
-                </>
+                <View style={styles.odLimitWarning}>
+                  <Ionicons name="warning" size={16} color="#FFF" />
+                  <Text style={styles.odLimitWarningText}>
+                    You have reached the maximum number of OD requests
+                  </Text>
+                </View>
               )}
-            </LinearGradient>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!isFormValid || isSubmitting || hasReachedMaxOD) && styles.disabledButton,
+            ]}
+            onPress={handleSubmit}
+            disabled={!isFormValid || isSubmitting || hasReachedMaxOD}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.submitButtonText}>Submit OD Request</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -1286,5 +1330,34 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 40,
+  },
+  odStatsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+  },
+  odStatsText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  odRemainingText: {
+    color: '#a5f3fc',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  odLimitWarning: {
+    backgroundColor: '#ef4444',
+    borderRadius: 4,
+    padding: 8,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  odLimitWarningText: {
+    color: '#fff',
+    fontSize: 13,
+    marginLeft: 6,
   },
 }); 

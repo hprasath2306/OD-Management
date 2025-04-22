@@ -61,6 +61,22 @@ router.put(
   studentController.updateStudent
 );
 
+// Reset student's OD count - Only admins and teachers can reset OD counts
+router.post(
+  '/:id/reset-od-count',
+  authMiddleware,
+  authorize(['ADMIN', 'TEACHER']),
+  studentController.resetStudentODCount
+);
+
+// Reset OD counts for all students in a group - Only admins and teachers can reset group OD counts
+router.post(
+  '/group/:groupId/reset-od-counts',
+  authMiddleware,
+  authorize(['ADMIN', 'TEACHER']),
+  studentController.resetGroupODCounts
+);
+
 // Delete student - Only admin can delete students
 router.delete(
   '/:id',

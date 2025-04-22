@@ -40,5 +40,6 @@ export const updateStudentSchema = z.object({
         departmentId: z.string().optional(),
         attendancePercentage: z.number().min(0).max(100).nullable().optional(),
         groupId: z.string().optional(),
+        numberOfOD: z.number().min(0).optional(),
     }),
 });

@@ -167,4 +167,24 @@ export const studentApi = {
       throw error;
     }
   },
+
+  // Reset a student's OD count
+  resetStudentODCount: async (studentId: string) => {
+    try {
+      const response = await api.post(`/students/${studentId}/reset-od-count`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to reset student OD count');
+    }
+  },
+
+  // Reset OD counts for all students in a group
+  resetGroupODCounts: async (groupId: string) => {
+    try {
+      const response = await api.post(`/students/group/${groupId}/reset-od-counts`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to reset group OD counts');
+    }
+  },
 }; 

@@ -82,11 +82,25 @@ export class RequestController {
             });
         }
     }
-    // Get student's requests
+    // Get requests for the authenticated student
     async getStudentRequests(req, res) {
         try {
-            const requests = await requestService.getStudentRequests(res.locals.user.id);
-            res.json({ requests });
+            const userId = res.locals.user.id;
+            // Get the student with their OD count
+            const student = await prisma.student.findUnique({
+                where: { userId },
+                select: { numberOfOD: true }
+            });
+            // Get the requests
+            const requests = await requestService.getStudentRequests(userId);
+            res.json({
+                requests,
+                odStats: {
+                    used: student?.numberOfOD || 0,
+                    remaining: Math.max(0, 10 - (student?.numberOfOD || 0)),
+                    maximum: 10
+                }
+            });
         }
         catch (error) {
             console.error(`Error fetching student requests: ${error.message}`);

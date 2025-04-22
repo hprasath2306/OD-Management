@@ -19,6 +19,10 @@ router.get('/reg/:regNo', authMiddleware, studentController.getStudentByRegNo);
 router.get('/group/:groupId', authMiddleware, studentController.getStudentsByGroup);
 // Update student - Only admin can update students
 router.put('/:id', authMiddleware, authorize(['ADMIN']), validateResource(updateStudentSchema), studentController.updateStudent);
+// Reset student's OD count - Only admins and teachers can reset OD counts
+router.post('/:id/reset-od-count', authMiddleware, authorize(['ADMIN', 'TEACHER']), studentController.resetStudentODCount);
+// Reset OD counts for all students in a group - Only admins and teachers can reset group OD counts
+router.post('/group/:groupId/reset-od-counts', authMiddleware, authorize(['ADMIN', 'TEACHER']), studentController.resetGroupODCounts);
 // Delete student - Only admin can delete students
 router.delete('/:id', authMiddleware, authorize(['ADMIN']), studentController.deleteStudent);
 export default router;

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useParams } from 'react-router-dom';
+import { studentApi } from '../api/student';
 
 // Form validation schemas
 const groupSchema = z.object({
@@ -89,6 +90,17 @@ export function Groups() {
     },
   });
 
+  const resetGroupODCountsMutation = useMutation({
+    mutationFn: studentApi.resetGroupODCounts,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      toast.success('OD counts reset successfully for all students in the group');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to reset OD counts');
+    },
+  });
+
   const onSubmit = async (data: GroupFormValues) => {
     if (editingGroup) {
       updateMutation.mutate({ id: editingGroup.id, data });
@@ -110,6 +122,12 @@ export function Groups() {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this group?')) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const handleResetGroupODCounts = (groupId: string) => {
+    if (window.confirm('Are you sure you want to reset OD counts for all students in this group?')) {
+      resetGroupODCountsMutation.mutate(groupId);
     }
   };
 
@@ -320,6 +338,18 @@ export function Groups() {
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleResetGroupODCounts(group.id);
+                            }}
+                            className="text-blue-400 hover:text-blue-300 flex items-center ml-3"
+                          >
+                            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Reset ODs
                           </button>
                         </div>
                       </td>

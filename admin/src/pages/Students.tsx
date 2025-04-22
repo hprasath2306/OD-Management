@@ -149,6 +149,18 @@ export function Students() {
     },
   });
 
+  // Reset OD count mutation
+  const resetODMutation = useMutation({
+    mutationFn: studentApi.resetStudentODCount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students', groupId] });
+      toast.success('OD count reset successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to reset OD count');
+    },
+  });
+
   const onSubmit = async (data: StudentFormValues) => {
     if (editingStudent) {
       updateMutation.mutate({ id: editingStudent.id, data });
@@ -185,6 +197,12 @@ export function Students() {
     }
 
     bulkUploadMutation.mutate(file);
+  };
+
+  const handleResetODCount = (studentId: string) => {
+    if (window.confirm('Are you sure you want to reset this student\'s OD count?')) {
+      resetODMutation.mutate(studentId);
+    }
   };
 
   if (isLoading) {
@@ -394,7 +412,13 @@ export function Students() {
                     scope="col"
                     className="px-3 py-3.5 text-left text-sm font-medium text-gray-200"
                   >
-                    Attendance %
+                    Attendance
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3.5 text-left text-sm font-medium text-gray-200"
+                  >
+                    OD Count
                   </th>
                   <th
                     scope="col"
@@ -440,21 +464,29 @@ export function Students() {
                       <td className="px-3 py-4 text-sm text-gray-300">
                         {student.regNo}
                       </td>
-                      <td className="px-3 py-4 text-sm">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
+                        {student.attendancePercentage ? `${student.attendancePercentage}%` : 'N/A'}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm">
                         <div className="flex items-center">
-                          <div className="relative w-16 h-2 rounded-full bg-gray-700 overflow-hidden">
-                            <div 
-                              className={`absolute top-0 left-0 h-full ${
-                                student.attendancePercentage >= 75 
-                                  ? 'bg-green-500' 
-                                  : student.attendancePercentage >= 60 
-                                  ? 'bg-yellow-500' 
-                                  : 'bg-red-500'
-                              }`}
-                              style={{ width: `${student.attendancePercentage}%` }}
-                            />
-                          </div>
-                          <span className="ml-2 text-gray-300">{student.attendancePercentage}%</span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            (student.numberOfOD || 0) >= 10 
+                              ? 'bg-red-900/60 text-red-200 border border-red-700' 
+                              : 'bg-blue-900/60 text-blue-200 border border-blue-700'
+                          }`}>
+                            {student.numberOfOD || 0}/10 ODs
+                          </span>
+                          {(student.numberOfOD || 0) > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleResetODCount(student.id);
+                              }}
+                              className="ml-2 text-xs text-gray-300 hover:text-white bg-gray-700/50 hover:bg-gray-700 px-2 py-1 rounded border border-gray-600 transition-colors"
+                            >
+                              Reset
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="relative py-4 pl-3 pr-6 text-right text-sm font-medium">

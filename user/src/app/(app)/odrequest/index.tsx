@@ -27,6 +27,13 @@ import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../../../context/AuthContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+// Add type for OD stats
+type ODStats = {
+  used: number;
+  remaining: number;
+  maximum: number;
+};
+
 export default function ODRequests() {
   const router = useRouter();
   const { user } = useAuth();
@@ -43,6 +50,9 @@ export default function ODRequests() {
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [filteredRequests, setFilteredRequests] = useState<OdRequest[] | null>(null);
   
+  // Add state variable
+  const [odStats, setODStats] = useState<ODStats | null>(null);
+  
   const { 
     data: requests, 
     isLoading, 
@@ -51,7 +61,17 @@ export default function ODRequests() {
     isRefetching
   } = useQuery({
     queryKey: ['odRequests'],
-    queryFn: getStudentRequests
+    queryFn: async () => {
+      try {
+        const response = await getStudentRequests();
+        setFilteredRequests(response.data.requests);
+        setODStats(response.data.odStats || null);
+        return response.data.requests;
+      } catch (error) {
+        console.error('Error fetching OD requests:', error);
+        throw error;
+      }
+    },
   });
 
   // Apply filters to requests
@@ -356,6 +376,47 @@ export default function ODRequests() {
     );
   };
 
+  // Add this component to show OD status
+  const ODStatusBanner = () => {
+    if (!odStats) return null;
+    
+    return (
+      <View style={styles.odStatusBanner}>
+        <View style={styles.odStatusInfo}>
+          <Text style={styles.odStatusTitle}>OD Requests</Text>
+          <View style={styles.odStatusRow}>
+            <View style={styles.odStatusItem}>
+              <Text style={styles.odStatusLabel}>Used</Text>
+              <Text style={styles.odStatusValue}>{odStats.used}</Text>
+            </View>
+            <View style={[styles.odStatusItem, styles.odStatusItemBorder]}>
+              <Text style={styles.odStatusLabel}>Remaining</Text>
+              <Text 
+                style={[
+                  styles.odStatusValue, 
+                  odStats.remaining === 0 ? styles.odStatusValueZero : null
+                ]}
+              >
+                {odStats.remaining}
+              </Text>
+            </View>
+            <View style={styles.odStatusItem}>
+              <Text style={styles.odStatusLabel}>Maximum</Text>
+              <Text style={styles.odStatusValue}>{odStats.maximum}</Text>
+            </View>
+          </View>
+        </View>
+        
+        {odStats.remaining === 0 && (
+          <View style={styles.limitReachedBanner}>
+            <Ionicons name="alert-circle" size={16} color="#fff" />
+            <Text style={styles.limitReachedText}>Maximum OD limit reached</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   if (error) {
     console.log(error)
     return (
@@ -420,6 +481,9 @@ export default function ODRequests() {
           ) : null}
         </View>
       </View>
+
+      {/* OD Status Banner */}
+      <ODStatusBanner />
 
       {/* Date Filters */}
       {isFilterVisible && (
@@ -1082,5 +1146,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     textAlign: 'center',
+  },
+  odStatusBanner: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    marginTop: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  odStatusInfo: {
+    padding: 16,
+  },
+  odStatusTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  odStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  odStatusItem: {
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  odStatusItemBorder: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+  },
+  odStatusLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+  },
+  odStatusValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  odStatusValueZero: {
+    color: '#ef4444',
+  },
+  limitReachedBanner: {
+    backgroundColor: '#ef4444',
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  limitReachedText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontWeight: '500',
   },
 }); 

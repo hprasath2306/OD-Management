@@ -203,5 +203,43 @@ export class StudentController {
             });
         }
     }
+    // Reset student's OD count
+    async resetStudentODCount(req, res) {
+        try {
+            const { id } = req.params;
+            const updatedStudent = await studentService.resetODCount(id);
+            res.status(200).json({
+                success: true,
+                data: updatedStudent,
+                message: "Student OD count reset successfully",
+            });
+        }
+        catch (error) {
+            console.error("Error resetting student OD count:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Error resetting OD count",
+            });
+        }
+    }
+    // Reset OD counts for all students in a group
+    async resetGroupODCounts(req, res) {
+        try {
+            const { groupId } = req.params;
+            const count = await studentService.resetGroupODCounts(groupId);
+            res.status(200).json({
+                success: true,
+                count,
+                message: `Reset OD count for ${count} students in the group`,
+            });
+        }
+        catch (error) {
+            console.error("Error resetting group OD counts:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Error resetting group OD counts",
+            });
+        }
+    }
 }
 export const studentController = new StudentController();

@@ -132,6 +132,7 @@ model Student {
   rollNo               String
   regNo                String           @unique
   attendancePercentage Float?
+  numberOfOD           Int              @default(0)
   userId               String           @unique
   groupId              String
   departmentId         String
