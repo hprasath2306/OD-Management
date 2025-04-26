@@ -15,13 +15,21 @@ import requestRoutes from "./routes/request.js";
 import uploadRoutes from "./routes/upload.js";
 
 const app = express();
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "https://clovers-acadify.vercel.app", "https://odadmin.vercel.app"],
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: ["http://localhost:5173", "https://clovers-acadify.vercel.app", "https://odadmin.vercel.app"],
+//     credentials: true,
+//   })
+// );
 
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    return callback(null, true);
+  },
+  credentials: true,
+}));
 app.use(urlencoded({ extended: false }));
 app.use(express.json());
 

@@ -26,9 +26,7 @@ export const departmentApi = {
   // Get all departments
   getAllDepartments: async (): Promise<Department[]> => {
     try {
-      const response = await api.get<ApiResponse<Department[]>>('/department',{
-        withCredentials: true
-      });
+      const response = await api.get<ApiResponse<Department[]>>('/department');
       console.log('Get departments response:', response.data);
       
       if (response.data.success && Array.isArray(response.data.data)) {
